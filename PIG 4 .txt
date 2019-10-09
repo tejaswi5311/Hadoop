@@ -1,0 +1,496 @@
+
+
+
+
+cogroup:- we can perform seperate aggregations on each data set
+_________
+          ex:for each branch seperate aggregation
+
+we get seperate inner bags (data groups) for each dataset.
+ 
+ 
+ 
+
+cat > branch1
+11,20000
+12,30000
+12,40000
+13,50000
+13,60000
+
+cat > branch2
+11,9000
+11,8000
+12,7000
+13,6000
+13,5000
+
+b1 = load 'branch1' using PigStorage(',') as (dno:int, price:int);
+b2 = load 'branch2' using PigStorage(',') as (dno:int, price:int);
+
+grunt>cg = cogroup b1 by dno, b2 by dno;
+(11,{(11,20000)},{(11,8000),(11,9000)})
+(12,{(12,40000),(12,30000)},{(12,7000)})
+(13,{(13,60000),(13,50000)},{(13,5000),(13,6000)})
+grunt>res = foreach cg generate
+    group as dno, SUM(b1.price) as tot1,
+    SUM(b2.price) as tot2;
+o/p:
+(11,20000,17000)
+(12,70000,7000)
+(13,110000,11000)
+
+grunt>res1 = foreach res generate
+    dno, tot1+tot2 as tot;
+o/p:
+(11,37000)
+12,77000)
+(13,121000)
+
+we can perform multiple aggregations also
+
+ex:2
+
+cat > ds1
+a,100
+b,200
+a,100
+b,400
+
+cat > ds2
+a,300
+c,600
+a,700
+c,800
+
+grunt> d1 = load 'ds1' using PigStorage(',') as (c1:chararray,c2:int);
+grunt> d2 = load 'ds2' using PigStorage(',') as (c1:chararray,c2:int);
+cg = cogroup d1 by $0, d2 by $0;
+
+(a,{(a,100),(a,100)},{(a,700),(a,300)})
+(b,{(b,400),(b,200)},{})
+(c,{},{(c,800),(c,600)})
+
+res5 = foreach cgrp1 generate group as key,SUM(d1.c2) as tot,SUM(d2.c2);
+
+(a,200,1000)
+(b,600,)
+(c,,1400)
+
+
+ex:3
+
+[training@localhost ~]$ cat > sales1
+p1,2000
+p2,3000
+p1,4000
+p1,5000
+p2,4000
+p3,5000
+[training@localhost ~]$ cat > sales2
+p1,6000
+p2,8000
+p1,1000
+p1,5000
+p1,6000
+p2,6000
+p2,8000
+[training@localhost ~]$ hadoop fs -copyFromLocal sales1  /piglab
+
+
+[training@localhost ~]$ hadoop fs -copyFromLocal sales2  /piglab
+
+grunt> s1 = load '/piglab/sales1' using PigStorage(',') as (pid:chararray, price:int);
+grunt> s2 = load '/piglab/sales2'  using PigStorage(',') as (pid:chararray, price:int);
+grunt> cg = cogroup s1 by pid, s2 by pid;
+grunt> describe cg
+cg: {group: chararray,s1: {pid: chararray,price: int},s2: {pid: chararray,price: int}}
+grunt> dump cg
+
+(p1,{(p1,2000),(p1,4000),(p1,5000)},{(p1,6000),(p1,1000),(p1,5000),(p1,6000)})
+(p2,{(p2,3000),(p2,4000)},{(p2,8000),(p2,6000),(p2,8000)})
+(p3,{(p3,5000)},{})
+
+grunt> res = foreach cg generate
+    group as pid, SUM(s1.price) as tot1,
+    SUM(s2.price) as tot2;
+grunt> dump res
+
+(p1,11000,18000)
+(p2,7000,22000)
+(p3,5000,)
+
+___________________________________
+
+
+
+
+
+Eliminating or cleaning nulls
+
+grunt> describe res;
+res: {pid: chararray,tot1: long,tot2: long}.
+
+grunt> res = foreach res generate             
+>>    pid,                                
+>>    (tot1 is null   ?   0:tot1) as tot1,
+>>   (tot2 is null ? 0:tot2) as tot2;     
+grunt> 
+
+
+(p1,11000,18000)
+(p2,7000,22000)
+(p3,5000,0)
+
+    
+grunt> res = foreach res generate
+>>      *,  tot1+tot2 as totall;
+grunt> dump res
+
+(p1,11000,18000,29000)
+(p2,7000,22000,29000)
+(p3,5000,0,5000)
+
+___________________________________
+
+assignment:-
+______________
+
+task: cleaning 
+schema -->
+  trid, prid, price, mrp, qnt, discount
+
+if  price missed, replace it by mrp.
+if qnt missed , replace it by 1.
+if discount missed , replace it by 0.
+
+ 
+_______________________________
+
+
+
+
+distinct:- to eliminate duplicates
+
+cat > dupes
+101,aaa,10000
+101,bbb,20000
+101,aaa,10000
+101,aaa,10000
+101,aaa,10000
+102,bbb,40000
+103,ccc,50000
+102,bbb,40000
+102,bbb,40000
+
+
+
+grunt> dupe = load 'dupes' using PigStorage(',') as (id:int,name:chararray,sal:int); 
+
+grunt> dump dupe;
+
+grunt> g1 = distinct dupe;
+grunt>dump d1;
+(101,aaa,10000)
+(101,bbb,20000)
+(102,bbb,40000)
+(103,ccc,50000)
+
+ what are different dno(departments)s
+
+grunt> g2 = foreach g1 generate eid;
+(101)
+(101)
+(102)
+(103)
+
+grunt> g3 = distinct g2;
+grunt> dump g3;
+(101)
+(102)
+(103)
+
+union:-
+
+
+
+ e = union ds1  , ds2
+
+ex:1
+ cat > emps1
+101,aaa,1000,m,11
+102,bbb,2000,f,12
+103,ccc,3000,m,12
+104,ddd,4000,f,13
+105,eee,5000,m,11
+106,fff,6000,f,14
+107,ggg,7000,m,15
+108,hhh,8000,f,16
+
+
+ cat > emps2
+201,ddd,2000,m,11
+201,eee,3000,f,12
+
+
+grunt> emp1 = load 'emps1' using PigStorage(',') as (id:int,name:chararray,sal:int,sex:chararray,dno:int);
+grunt> emp2 = load 'emps2' using PigStorage(',') as (id:int,name:chararray,sal:int,sex:chararray,dno:int);
+
+grunt> e7 = union emp1,emp2;
+grunt>dump e7;
+
+(101,aaa,1000,m,11)
+(102,bbb,2000,f,12)
+(103,ccc,3000,m,12)
+(104,ddd,4000,f,13)
+(105,eee,5000,m,11)
+(106,fff,6000,f,14)
+(107,ggg,7000,m,15)
+(108,hhh,8000,f,16)
+(201,ddd,2000,m,11)
+(201,eee,3000,f,12)
+
+______
+s1
+________
+name, sal
+__________
+aaa,10000
+bbbb,30000
+cccc,40000
+___________
+
+ds2
+____________
+name,sal
+___________
+ xxx,30000
+ yyy,40000
+ zzz,60000
+______________
+
+if all files schema is different.
+ ds3
+_________
+sal, name
+___________
+10000,abc
+20000,def
+____________
+
+ds4 = foreach ds3 generate name, sal;
+
+ds = union ds1, ds2, ds4;
+___________________________
+
+ex2:
+if schema is different
+
+cat > emps1
+101,aaa,1000,m,11
+102,bbb,2000,f,12
+103,ccc,3000,m,12
+104,ddd,4000,f,13
+105,eee,5000,m,11
+106,fff,6000,f,14
+107,ggg,7000,m,15
+108,hhh,8000,f,16
+
+ cat > emps3;
+201,jjj,11,m,2000
+202,kkk,12,f,3000
+
+grunt> emp1 = load 'emps1' using PigStorage(',') as (id:int,name:chararray,sal:int,sex:chararray,dno:int);
+grunt> emp3 = load 'emps3' using PigStorage(',') as (id:int,name:chararray,dno:int,sex:chararray,sal:int);
+grunt> emp4 = foreach emp3 generate id,name,sal,sex,dno;
+grunt> res3 = union emp1,emp2,emp4;
+grunt> dump res3;
+
+(101,aaa,1000,m,11)
+(102,bbb,2000,f,12)
+(103,ccc,3000,m,12)
+(104,ddd,4000,f,13)
+(105,eee,5000,m,11)
+(106,fff,6000,f,14)
+(107,ggg,7000,m,15)
+(108,hhh,8000,f,16)
+(201,ddd,2000,m,11)
+(201,eee,3000,f,12)
+(201,jjj,2000,m,11)
+(202,kkk,3000,f,12)
+
+
+
+if files have different  fields.
+
+ex:1
+
+cat > emps1
+101,aaa,1000,m,11
+102,bbb,2000,f,12
+103,ccc,3000,m,12
+104,ddd,4000,f,13
+105,eee,5000,m,11
+106,fff,6000,f,14
+107,ggg,7000,m,15
+108,hhh,8000,f,16
+
+cat > emps5
+301,mmm,1000,m,hyd
+302,nnn,2000,f,pune
+
+grunt> emp1 = load 'emps1' using PigStorage(',') as (id:int,name:chararray,sal:int,sex:chararray,dno:int);
+grunt> emp5 = load 'emps5' using PigStorage(',') as (id:int,name:chararray,sal:int,sex:chararray,city:chararray);
+
+grunt> e1 = foreach emp1 generate *,'city1' as city;
+grunt> e5 = foreach emp5 generate id,name,sal,sex,0 as dno,city;
+grunt> res = union e1,e5;
+grunt>dump res;
+
+(101,aaa,1000,m,11,city1)
+(102,bbb,2000,f,12,city1)
+(103,ccc,3000,m,12,city1)
+(104,ddd,4000,f,13,city1)
+(105,eee,5000,m,11,city1)
+(106,fff,6000,f,14,city1)
+(107,ggg,7000,m,15,city1)
+(108,hhh,8000,f,16,city1)
+(301,mmm,1000,m,0,hyd)
+(302,nnn,2000,f,0,pune)
+
+ 
+
+
+
+
+________________________________
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

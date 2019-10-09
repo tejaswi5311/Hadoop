@@ -1,0 +1,562 @@
+order by:
+
+ex 1:
+
+$ cat emp5
+101,miller,10000,m,11
+102,Blake,20000,m,12
+103,sony,30000,f,11
+104,Sita,40000,f,12
+105,Dhoni,50000,m,13
+
+
+grunt> e1 =load 'emp5' using PigStorage(',') as (eid:int,ename:chararray,sal:double,sex:chararray,dno:int);
+
+
+grunt> e2 =order e1 by ename desc;
+grunt> dump e2;
+
+output:
+(102,Blake,20000.0,m,12)
+(105,Dhoni,50000.0,m,13)
+(104,Sita,40000.0,f,12)
+(101,miller,10000.0,m,11)
+(103,sony,30000.0,f,11)
+--------------------------------------------------------------------------------------------------------------
+ex:2
+
+grunt> e3 =order e1 by sal desc;
+grunt> dump e3;
+
+output:
+(105,Dhoni,50000.0,m,13)
+(104,Sita,40000.0,f,12)
+(103,sony,30000.0,f,11)
+(102,Blake,20000.0,m,12)
+(101,miller,10000.0,m,11)
+-------------------------------------------------------------------------------------------------------------
+ex 3:
+
+order can be applied on mutiple columns
+
+grunt> e4 =order e1 by dno desc,sal,sex desc;
+grunt> dump e4;
+
+output:
+
+(105,Dhoni,50000.0,m,13)
+(102,Blake,20000.0,m,12)
+(104,Sita,40000.0,f,12)
+(101,miller,10000.0,m,11)
+(103,sony,30000.0,f,11)
+
+--- no limit for max number of sort fields.
+
+------------------------------------------------------------------------------------------------------------
+
+Task : I want top 2 departments with highest income
+
+select dno,sum(sal) from emp
+
+we perform following operations
+
+1)group by dno
+2)sum aggregation
+3)order by income desc
+4)limit 2
+
+grunt> e1 =load 'emp5' using PigStorage(',') as (eid:int,ename:chararray,sal:double,sex:chararray,dno:int);
+
+grunt> grp =group e1 by dno;
+grunt> res =foreach grp generate group as dno,SUM(e1.sal) as income;
+grunt> dump res;
+(11,40000.0)
+(12,60000.0)
+(13,50000.0)
+
+
+grunt> res1 =order res by income desc;
+grunt> res2 =limit res1 2;
+grunt> dump res2;
+output:
+(12,60000.0)
+(13,50000.0)
+
+
+
+----------------------------------------------------------------------------------------------
+Merging Data: 
+
+There are 2 types of merging
+1)Vertical merge-------->(merging rows vertically)
+  ex: union
+  condition: schema of both merging datasets should be same 
+   ex: union emp1,emp2
+       here emp1 and emp2 should have same schema i.e same no of columns
+
+2)Horizontal merge: merging columns horizontally
+  ex:joins
+  condition: atleast one field should be same for joining 
+  ex: join emp1 by dno,dept1 by dno
+-----------------------------------------------------------------------------------------------
+JOINS:
+
+2 types of joins:
+1)Inner Join: only matching columns
+2)Outer Join : 3 types
+  i)left outer join
+  ii)right outer join
+  iii)full outer join
+
+Default is Inner join
+ 
+ex:
+A= 1        B= 1
+   2           2
+   3           3
+   4           7
+   5           8
+   6           9
+
+1) Inner join: only matching columns
+  
+  o/p: (1,1)
+       (2,2)
+       (3,3)
+
+2)Left outer Join: matching columns+ unmatched columns of left side i.e total presence of left side
+o/p:
+(1,1)
+(2,2)
+(3,3)
+(4,)
+(5,)
+(6,)
+
+3)Right outer Join: matching columns+unmatched columns of right side i.e total presence of right side
+o/p:
+(1,1)
+(2,2)
+(3,3)
+(,7)
+(,8)
+(,9)
+
+4)Full outer Join: matching columns+ total presence of (left side+right side)
+o/p:
+(1,1)
+(2,2)
+(3,3)
+(4,)
+(5,)
+(6,)
+(,7)
+(,8)
+(,9)
+-----------------------------------------------------------------------------------------------------------------
+ex:
+
+cat emps4
+101,aaa,1000,m,11
+102,bbb,2000,f,12
+103,ccc,3000,m,12
+104,ddd,4000,f,13
+105,eee,5000,m,11
+106,fff,6000,f,14
+107,ggg,7000,m,15
+108,hhh,8000,f,16
+
+ cat dept1
+11,mrkt,hyd
+12,HR,delhi
+13,fin,pune
+17,HR,hyd
+18,fin,pune
+19,mrkt,delhi
+
+grunt> e1 =load 'emps4' using PigStorage(',') as
+(eid:int,ename:chararray,sal:double,sex:chararray,dno:int);
+
+grunt> d1 =load 'dept1' using PigStorage(',') as (dno:int,dname:chararray,city:chararray);
+
+1)inner join:
+grunt> ij =join e1 by dno,d1 by dno;
+grunt> dump ij;
+
+output:
+(105,eee,5000.0,m,11,11,mrkt,hyd)
+(101,aaa,1000.0,m,11,11,mrkt,hyd)
+(103,ccc,3000.0,m,12,12,HR,delhi)
+(102,bbb,2000.0,f,12,12,HR,delhi)
+(104,ddd,4000.0,f,13,13,fin,pune)
+------------------------------------------------------------------------------------------------------------
+2)Left outer join:
+grunt> loj =join e1 by dno left outer,d1 by dno;
+grunt> dump loj;
+
+output:
+(105,eee,5000.0,m,11,11,mrkt,hyd)
+(101,aaa,1000.0,m,11,11,mrkt,hyd)
+(103,ccc,3000.0,m,12,12,HR,delhi)
+(102,bbb,2000.0,f,12,12,HR,delhi)
+(104,ddd,4000.0,f,13,13,fin,pune)
+(106,fff,6000.0,f,14,,,)
+(107,ggg,7000.0,m,15,,,)
+(108,hhh,8000.0,f,16,,,)
+------------------------------------------------------------------------------------------------------------
+3)Right outer join:
+grunt> roj =join e1 by dno right outer,d1 by dno;
+grunt> dump roj;
+
+output:
+(105,eee,5000.0,m,11,11,mrkt,hyd)
+(101,aaa,1000.0,m,11,11,mrkt,hyd)
+(103,ccc,3000.0,m,12,12,HR,delhi)
+(102,bbb,2000.0,f,12,12,HR,delhi)
+(104,ddd,4000.0,f,13,13,fin,pune)
+(,,,,,17,HR,hyd)
+(,,,,,18,fin,pune)
+(,,,,,19,mrkt,delhi)
+------------------------------------------------------------------------------------------------------------------
+4)Full outer join:
+grunt> foj =join e1 by dno full outer,d1 by dno;
+grunt> dump foj;
+(105,eee,5000.0,m,11,11,mrkt,hyd)
+(101,aaa,1000.0,m,11,11,mrkt,hyd)
+(103,ccc,3000.0,m,12,12,HR,delhi)
+(102,bbb,2000.0,f,12,12,HR,delhi)
+(104,ddd,4000.0,f,13,13,fin,pune)
+(106,fff,6000.0,f,14,,,)
+(107,ggg,7000.0,m,15,,,)
+(108,hhh,8000.0,f,16,,,)
+(,,,,,17,HR,hyd)
+(,,,,,18,fin,pune)
+(,,,,,19,mrkt,delhi)
+
+grunt> describe foj;
+foj: {e1::eid: int,e1::ename: chararray,e1::sal: double,e1::sex: chararray,e1::dno: int,d1::dno: int,
+d1::dname: chararray,d1::city: chararray}
+
+
+I want to extract only 3 fields i.e dno,dname,sal
+
+grunt> res1 =foreach foj generate e1::dno as dno,d1::dname as dname,e1::sal as sal;
+grunt> dump res1;
+
+output:
+(11,mrkt,5000.0)
+(11,mrkt,1000.0)
+(12,HR,3000.0)
+(12,HR,2000.0)
+(13,fin,4000.0)
+(14,,6000.0)
+(15,,7000.0)
+(16,,8000.0)
+(,HR,)
+(,fin,)
+(,mrkt,)
+
+
+I want to extract dno1,dno2,sal
+
+grunt> res2 =foreach foj generate e1::dno as dno1,d1::dno as dno2,e1::sal as sal;
+grunt> dump res2;
+
+output:
+(11,11,5000.0)
+(11,11,1000.0)
+(12,12,3000.0)
+(12,12,2000.0)
+(13,13,4000.0)
+(14,,6000.0)
+(15,,7000.0)
+(16,,8000.0)
+(,17,)
+(,18,)
+(,19,)
+----------------------------------------------------------------------------------------------------------------
+Task1: for the above ex, I want status as------>working,benchproj,benchteam 
+
+grunt> res3 =foreach res2 generate (
+>> dno1 is not null and dno2 is not null ? 'WORKING':(
+>> dno1 is not null and dno2 is null ? 'BENCHPROJ':'BENCHTEAM')) as status,sal;
+
+grunt> dump res3;
+
+output:
+(WORKING,5000.0)
+(WORKING,1000.0)
+(WORKING,3000.0)
+(WORKING,2000.0)
+(WORKING,4000.0)
+(BENCHPROJ,6000.0)
+(BENCHPROJ,7000.0)
+(BENCHPROJ,8000.0)
+(BENCHTEAM,)
+(BENCHTEAM,)
+(BENCHTEAM,)
+
+Task 2: total sal given for each status
+grunt> grp =group res3 by status;
+grunt> res4 =foreach grp generate group as status,SUM(res3.sal) as income;
+grunt> dump res4;
+
+(WORKING,15000.0)
+(BENCHPROJ,21000.0)
+(BENCHTEAM,)
+---------------------------------------------------------------------------------------------------------------
+
+cartesian product:
+
+cross:every row of A will combine with every row of B.
+
+ex: A=a     B=1
+      b       2
+      c       3
+ cross A,B-----> a,1
+                 a,2
+                 a,3
+                 b,1
+                 b,2
+                 b,3
+                 c,1
+                 c,2
+                 c,3
+
+Matrimony Example:
+
+[training@localhost ~]$ cat > matrimony
+Ravi,25,m
+Rani,24,f
+Ileana,23,f
+trisha,27,f
+Kiran,29,m
+madhu,22,m
+Ravi,26,m
+srithi,21,f
+
+[training@localhost ~]$ hadoop fs -copyFromLocal matrimony pdemo
+
+grunt> matri = load '/pdemo/matrimony' using PigStorage(',') as (name:chararray, age:int, sex:chararray);
+grunt> males = filter matri by (sex=='m');
+grunt> fems = filter matri by (sex=='f');
+grunt> cr = cross males, fems;
+grunt> describe cr
+cr: {males::name: chararray,males::age: int,males::sex: chararray,fems::name: chararray,fems::age: int,fems::sex: chararray}
+grunt> mf = foreach cr generate males::name as mname, fems::name as fname , males::age as mage,fems::age as fage;
+grunt> describe mf
+mf: {mname: chararray,fname: chararray,mage: int,fage: int}
+grunt> mlist = filter mf by (mage>fage  and (mage-fage)<4);
+
+grunt> dump mlist;
+(madhu,srithi,22,21)
+(Ravi,Rani,26,24)
+(Ravi,Ilean,26,23)
+(Kiran,trisha,29,27)
+(Ravi,Rani,25,24)
+(Ravi,Ileana,25,23)
+
+---------------------------------------------------------------------------------------------------------------------
+Word count:
+
+$cat comment
+java is simple
+java is compiled
+java is interpreted
+java is secure
+
+grunt> lines =load 'comment' as (line:chararray);
+grunt> words =foreach lines generate TOKENIZE(line) as word;
+({(java),(is),(simple)})
+({(java),(is),(compiled)})
+({(java),(is),(interpreted)})
+({(java),(is),(secure)})
+
+grunt> res =foreach words generate FLATTEN(word) as word1;
+
+note: Flatten converts inner bag to outer bag
+
+output:
+(java)
+(is)
+(simple)
+(java)
+(is)
+(compiled)
+(java)
+(is)
+(interpreted)
+(java)
+(is)
+(secure)
+
+grunt> grp =group res by word1;
+grunt> res1 =foreach grp generate group as word1,COUNT(res) as count;
+grunt> dump res1;
+
+
+output:
+(is,4)
+(java,4)
+(secure,1)
+(simple,1)
+(compiled,1)
+(interpreted,1)
+
+
+--------------------------------------------------------------------------------------------------
+
+
+submitting pig scripts:
+
+we have3 commands:
+  i) Pig
+ ii) exec
+ iii)run 
+
+
+
+ 1)pig:Here we submit pig script from command prompt(terminal)
+       Here relations cannot be reused.
+writing pig script:
+
+[training@localhost ~]$ cat script1.pig
+
+emp = load 'emp5' using PigStorage(',') as (id:int, name:chararray, sal:int,sex:chararray, dno:int);
+e = foreach emp generate sex, sal;
+grp = group e by sex;
+res = foreach grp generate group as sex, SUM(e.sal) as tot;
+dump res;
+store res into 'resdir1' using PigStorage(','); 
+
+
+submitting pig script in local mode:
+$ pig -x local script1.pig
+
+submitting pig script in HDFS mode:
+$ pig script1.pig
+
+output: (f,60000)
+        (m,90000)
+
+
+Advantage: 1.Used for Production Operators
+           2.can be called from other environments like shell script
+
+Disadvantage:Here Relations cannot be reused.
+
+dump grp;
+dump res;
+these relations cannot be reused,not available
+
+----------------------------------------------------------------------------------------------------
+
+2)exec: Here we submit script from grunt shell. 
+        Here also relation aliases will not be available or reused.
+
+grunt>exec script1.pig
+output: (f,60000)
+        (m,90000)
+
+dump grp;
+dump res;
+these relations cannot be reused,not available
+----------------------------------------------------------------------------------------------------
+
+3)run: Here also we submit script from grunt shell. 
+       Here relation aliases will be available and reused
+
+grunt>run script1.pig
+output: (f,60000)
+        (m,90000)
+
+dump grp;
+dump res;
+output:  (f,60000)
+         (m,90000)
+these relations can be reused,will be available
+
+-------------------------------------------------------------------------------------------------------
+
+
+$ pig script1.pig
+
+grunt> exec script1.pig
+
+grunt> run script1.pig
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

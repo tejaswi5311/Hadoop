@@ -1,0 +1,214 @@
+----PIG-----------
+
+PIG is a Data flow Language
+
+Data flow is a sequence collection of pipes.
+
+pipe is a data operation, the operation can be loading data,filtering,transformations,merging
+sorting,grouping,aggregation etc...
+
+At each pipe either transformation/filtering will take place.
+
+pig processing will happen using many built-in-operators 
+-----------------------------------------------------------------------------------------------
+
+Disadvantages of MR:
+
+1.Huge coding
+2.Lot of programming(knowledge)
+3.Joins,group by,order by are complex to implement,requires huge code 
+ 
+----------------------------------------------------------------------------------------------
+Advantages of Pig:
+
+1.less coding
+2.Complex operations can be performed in a simple manner
+3.100 lines of MR equivalent  to 7 lines of pig
+
+For PIG, we use a language called PIG-LATIN
+
+PIG-LATIN: PIG-LATIN is a scripting language which is used to define various built-in operators
+-----------------------------------------------------------------------------------------------
+PIG Termninologies:
+
+1.Relation-in sql,it is table name
+2.Bag ----in sql,it is table
+3.Tuple---in sql,it is row
+4.Field---in sql,it is column
+
+1.Field: An entity which is just like column in sql
+  ex: eid,ename,esal
+
+2.Tuple: collection of field values forms a tuple
+         just like row in sql
+         ex: (101,john,10000,m,11)
+         values stored in tuple as ( )
+
+3.Bag: collection of tuples forms a Bag
+       ex: (101,john,10000,m,11)
+           (102,miller,20000,m,12)
+
+  There are 2 types of Bags
+  1.Outer Bag
+  2.Inner Bag
+
+ 1.Outer Bag: collection of tuples forms a Bag called outer bag
+ 2.Inner Bag: In a bag,if a field is taken as bag,then that bag is called as inner bag
+
+4.Relation: Relation is nothing but, a name to a bag(outer bag). 
+            Relation is nothing but a bag referred by a name
+
+eX:
+        (101,miller,10000,m,11)
+        (102,Blake,20000,m,12)
+        (103,sony,30000,f,11)
+        (104,sita,40000,f,12)
+        (105,Ajay,50000,m,13)
+    
+
+Here each row or record is called a tuple
+here,each column is called a field
+collection of tuples(4) is called bag(outer bag)
+A name to outer bag is called Relation
+in a tuple, if a bag is taken as a field,the that bag is called inner bag
+ex:
+grp =group emp by dno
+(11,{(101,miller,10000,m,11),(103,sony,30000,f,11)})
+(12,{(102,Blake,20000,m,12),(104,sita,40000,f,12)})
+(13,{(105,Ajay,50000,m,13)})
+
+Here we have 3 tuples
+Each tuple consists of 2 fields
+1.dno
+2.set of tuples taken as one field forms a bag called inner bag
+
+
+
+---------------------------------------------------------------------------------------------------------------
+Datatypes in Pig:
+2 types
+1.Simple datatypes: int,float,long,double,boolean,chararray,bytearray
+2.Complex data types: tuple,bag
+
+ex:
+name-------->char array
+age---------->int
+sal----------->int/float
+married------->boolean
+1 emp detail---->tuple
+               (101,john,10000,m,11)
+
+employees details--->outer bag
+        (101,john,10000,m,11)
+        (102,miller,20000,m,12)
+        (103,Blake,10000,m,11)
+        (104,miller,20000,m,12)
+
+person and his family details---->inner bag
+          
+             (101,john,10000,m,11,{(child1,age,ht,wt),(child2,age,ht,wt)})
+
+if data is loaded into pig,then by default it is taken as bytearray,later it is converted into
+corresponding datatypes.
+---------------------------------------------------------------------------------------------------------------
+
+Different modes of PIG Execution:
+1.Local mode
+2.HDFS mode or clustered mode or mapreduce mode
+
+1)Local mode: opening pig in local mode
+  $ pig -x local
+  grunt> 
+  grunt shell started in local mode
+
+  here pig takes i/p from local(LFS) and writes o/p into local(LFS)
+  Advantage: Local mode Used for Development & Testing
+
+2)HDFS mode: opening pig in HDFS mode
+  $ pig
+  grunt>
+  grunt shell started in HDFS mode
+  here pig takes i/p from HDFS and writes o/p into HDFS
+  Advantage: HDFS mode used for production
+
+  while working with PIG,we open 2 terminals
+  PIG----->in local mode,(used for development & testing),Here first we run here,if success,we run in HDFS mode
+  PIG----->in HDFS mode,(used for production)
+
+----------------------------------------------------------------------------------------------------------------
+  PIG Latin Statement format
+
+ relation=operator along with expression
+
+ex:  emp= load 'user/file1' as (id:int,name:chararray,sal:int,sex:chararry,dno:int);
+
+ -here emp is a relation
+ -here operator is load,
+ -and remaining everthing is expression.
+
+ -Expressions will be changing from one operator to another
+ -various operators: load,store,group etc...
+ -Pig processing happens using various built-in operators or commands
+ -The total PIG flow will again be converted into MR job during processing. 
+
+ ------------------------------------------------------------------------------------------------------------------
+       
+  
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
