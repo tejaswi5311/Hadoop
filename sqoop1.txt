@@ -1,0 +1,848 @@
+SQOOP(SQL+HADOOP):
+
+sqoop has got 2 tools:
+1)sqoop import : RDBMS------>Hadoop
+2)sqoop export : Hadoop------>RDBMS
+
+
+Sqoop supports almost all popular databases such as mysql,orace,sqlserver,sybase,Teradata etc.
+Sqoop will never interact with LFS,It intearacts only with HDFS 
+
+1)Sqoop import: To import data from RDBMS to hadoop
+
+  Here we can do 3 activities
+  1)RDBMS------->HDFS
+  2)RDBMS------->HIVE
+  3)RDBMS------->HBASE
+
+2)Sqoop Export: To Export data from Hadoop to RDBMS
+
+  Here we can do 2 Activities
+  1)HDFS to RDBMS
+  2)Hive to RDBMS
+  
+  HBASE to RDBMS is not possible,
+  but indirectly it is possible,i.e  HBASE----->Hive------->RDBMS
+  Hive and HBASE integration is used to export data from HBASE to RDBMS
+
+
+-------------------------------------------------------------------------------------------------------------
+
+Practicals:
+
+ mysql -u root -p
+Enter password: 
+
+mysql> show databases;
++--------------------+
+| Database           |
++--------------------+
+| information_schema |
+| db1                |
+| mysql              |
+| performance_schema |
++--------------------+
+
+mysql> create database sqoopdb;
+Query OK, 1 row affected (0.00 sec)
+
+mysql> use sqoopdb;
+Database changed
+
+mysql> show tables;
+Empty set (0.01 sec)
+
+mysql> create table emp(id int primary key,
+         name char(10), sal int,
+         sex char(1), dno int);
+(or)
+
+mysql>create table emp(id integer(3),name varchar(20),sal integer(5),sex varchar(3),dno integer(2));
+
+
+mysql> describe emp;
++-------+----------+------+-----+---------+-------+
+| Field | Type     | Null | Key | Default | Extra |
++-------+----------+------+-----+---------+-------+
+| id    | int(11)  | NO   | PRI | NULL    |       |
+| name  | char(10) | YES  |     | NULL    |       |
+| sal   | int(11)  | YES  |     | NULL    |       |
+| sex   | char(1)  | YES  |     | NULL    |       |
+| dno   | int(11)  | YES  |     | NULL    |       |
++-------+----------+------+-----+---------+-------+
+5 rows in set (0.00 sec)
+
+mysql> insert into emp values(101,'miller',10000,'m',11);
+Query OK, 1 row affected (0.09 sec)
+
+mysql> insert into emp values(102,'jyothi',20000,'f',12);
+Query OK, 1 row affected (0.08 sec)
+
+mysql> insert into emp values(103,'john',30000,'m',12);
+Query OK, 1 row affected (0.08 sec)
+
+mysql> insert into emp values(104,'sonia',40000,'f',13);
+Query OK, 1 row affected (0.08 sec)
+
+mysql> insert into emp values(105,'Blake',50000,'m',11);
+Query OK, 1 row affected (0.07 sec)
+
+mysql> insert into emp values(106,'Ajay',60000,'m',11);
+Query OK, 1 row affected (0.08 sec)
+
+mysql> select * from emp;
++-----+--------+-------+------+------+
+| id  | name   | sal   | sex  | dno  |
++-----+--------+-------+------+------+
+| 101 | miller | 10000 | m    |   11 |
+| 102 | jyothi | 20000 | f    |   12 |
+| 103 | john   | 30000 | m    |   12 |
+| 104 | sonia  | 40000 | f    |   13 |
+| 105 | Blake  | 50000 | m    |   11 |
+| 106 | Ajay   | 60000 | m    |   11 |
++-----+--------+-------+------+------+
+ 
+------------------------------------------------------------------------------------------------------
+ex:2
+
+mysql> create table customer(id integer(3), name varchar(20), age integer(2), salary integer(10));
+Query OK, 0 rows affected (0.44 sec)
+
+mysql> insert into customer values(101,"Ajay",27,10000);
+Query OK, 1 row affected (0.08 sec)
+
+mysql> insert into customer values(102,"sanjay",37,20000);
+Query OK, 1 row affected (0.04 sec)
+
+mysql> insert into customer values(103,"Arjun",22,30000);
+Query OK, 1 row affected (0.08 sec)
+
+mysql> insert into customer values(104,"pavan",25,40000);
+Query OK, 1 row affected (0.07 sec)
+
+mysql> insert into customer values(105,"tharun",45,50000);
+Query OK, 1 row affected (0.06 sec)
+
+mysql> insert into customer values(106,"manoj",55,60000);
+Query OK, 1 row affected (0.12 sec)
+
+mysql> select * from customer;
++------+--------+------+--------+
+| id   | name   | age  | salary |
++------+--------+------+--------+
+|  101 | Ajay   |   27 |  10000 |
+|  102 | sanjay |   37 |  20000 |
+|  103 | Arjun  |   22 |  30000 |
+|  104 | pavan  |   25 |  40000 |
+|  105 | tharun |   45 |  50000 |
+|  106 | manoj  |   55 |  60000 |
+
+
+-----------------------------------------------------------------------------------------------------------------
+to check whether sqoop installed or not, type this
+
+
+lenovo@lenovo-Lenovo-G450:~$ sqoop version
+
+Sqoop 1.4.6
+
+lenovo@lenovo-Lenovo-G450:~$ sqoop help
+
+Available commands:
+  codegen            Generate code to interact with database records
+  create-hive-table  Import a table definition into Hive
+  eval               Evaluate a SQL statement and display the results
+  export             Export an HDFS directory to a database table
+  help               List available commands
+  import             Import a table from a database to HDFS
+  import-all-tables  Import tables from a database to HDFS
+  import-mainframe   Import datasets from a mainframe server to HDFS
+  job                Work with saved jobs
+  list-databases     List available databases on a server
+  list-tables        List available tables in a database
+  merge              Merge results of incremental imports
+  metastore          Run a standalone Sqoop metastore
+  version            Display version information
+
+if these commands are not displayed, then sqoop is not installed properly
+
+
+
+
+---------------------------------------------------------------------------------------------------------------------
+1)importing a table with primary key from RDBMS to HDFS
+
+sqoop import \
+--connect jdbc:mysql://localhost/sqoopdb \
+--username root \
+--password hadoop \
+--table emp \
+--target-dir /sqimp1
+
+lenovo@lenovo-Lenovo-G450:~$ hadoop fs -ls /sqimp1
+Found 5 items
+-rw-r--r--   1 lenovo supergroup          0 2017-07-25 14:15 /sqimp1/_SUCCESS
+-rw-r--r--   1 lenovo supergroup         44 2017-07-25 14:15 /sqimp1/part-m-00000
+-rw-r--r--   1 lenovo supergroup         20 2017-07-25 14:15 /sqimp1/part-m-00001
+-rw-r--r--   1 lenovo supergroup         21 2017-07-25 14:15 /sqimp1/part-m-00002
+-rw-r--r--   1 lenovo supergroup         41 2017-07-25 14:15 /sqimp1/part-m-00003
+
+lenovo@lenovo-Lenovo-G450:~$ hadoop fs -cat \sqimp1/part-m-00000
+101,miller,10000,m,11
+102,jyothi,20000,f,12
+lenovo@lenovo-Lenovo-G450:~$ hadoop fs -cat \sqimp1/part-m-00001
+103,Blake,30000,m,12
+lenovo@lenovo-Lenovo-G450:~$ hadoop fs -cat \sqimp1/part-m-00002
+104,sonia,40000,f,13
+lenovo@lenovo-Lenovo-G450:~$ hadoop fs -cat \sqimp1/part-m-00003
+105,Ajay,50000,m,11
+106,varun,60000,m,11
+
+by default sqoop initiates multiple mappers.
+
+ these mappers will parallely importing data .
+
+that means, table is splitted into multiple parts,
+ each part is taken by seperate mapper.
+
+how to controll number of mappers.
+
+ use the option -m <number>
+
+  ex:   -m 2
+--------------------------------------------------------------------------------------------------------------------
+2) Controlling the no of mappers (from 4 mappers to any no of mappers)
+
+
+sqoop import \
+--connect jdbc:mysql://localhost/sqoopdb \
+--username root \
+--password hadoop \
+--table emp -m 2 \
+--target-dir /sqimp2
+
+lenovo@lenovo-Lenovo-G450:~$ hadoop fs -ls /sqimp2
+Found 3 items
+-rw-r--r--   1 lenovo supergroup          0 2017-07-26 13:36 /sqimp2/_SUCCESS
+-rw-r--r--   1 lenovo supergroup         64 2017-07-26 13:36 /sqimp2/part-m-00000
+-rw-r--r--   1 lenovo supergroup         62 2017-07-26 13:36 /sqimp2/part-m-00001
+lenovo@lenovo-Lenovo-G450:~$ hadoop fs -cat /sqimp2/part-m-00000
+101,miller,10000,m,11
+102,jyothi,20000,f,12
+103,john,30000,m,12
+lenovo@lenovo-Lenovo-G450:~$ hadoop fs -cat /sqimp2/part-m-00001
+104,sonia,40000,f,13
+105,Blake,50000,m,11
+106,Ajay,60000,m,11
+
+
+--------------------------------------------------------------------------------------------------------
+3)importing a table without primary key from RDBMS to HDFS
+
+mysql> create table emp2(id int, name char(10), sal int, sex char(1), dno int);
+
+mysql> insert into emp2 select * from emp;
+
+
+mysql> select * from emp2;
++------+--------+-------+------+------+
+| id   | name   | sal   | sex  | dno  |
++------+--------+-------+------+------+
+|  101 | miller | 10000 | m    |   11 |
+|  102 | jyothi | 20000 | f    |   12 |
+|  103 | john   | 30000 | m    |   12 |
+|  104 | sonia  | 40000 | f    |   13 |
+|  105 | Blake  | 50000 | m    |   11 |
+|  106 | Ajay   | 60000 | m    |   11 |
++------+--------+-------+------+------+
+
+if table is not having primary key,
+
+ number of mappers should be 1.
+
+why?
+
+ when  multiple mappers mappers initiated,
+  first mapper automatically points to begining  record of the first split. remaining mappers can not point to begining of their splits randomly. bcoz there is no primary key.
+
+  so only sequential reading is allowed from beginning of table to end of the table.
+
+   to make begining to ending as one split,
+ only one mapper should be intiated.
+
+    -m 1.
+
+sqoop import \
+--connect jdbc:mysql://localhost/sqoopdb \
+--username root \
+--password hadoop \
+--table emp2 -m 1 \
+--target-dir /sqimp3
+
+lenovo@lenovo-Lenovo-G450:~$ hadoop fs -ls /sqimp3
+Found 2 items
+-rw-r--r--   1 lenovo supergroup          0 2017-07-26 13:46 /sqimp3/_SUCCESS
+-rw-r--r--   1 lenovo supergroup        126 2017-07-26 13:46 /sqimp3/part-m-00000
+lenovo@lenovo-Lenovo-G450:~$ hadoop fs -cat /sqimp3/part-m-00000
+101,miller,10000,m,11
+102,jyothi,20000,f,12
+103,john,30000,m,12
+104,sonia,40000,f,13
+105,Blake,50000,m,11
+106,Ajay,60000,m,11
+
+--------------------------------------------------------------------------------------------------------------------------
+4) Filtering rows while importing data
+
+sqoop import \
+--connect jdbc:mysql://localhost/sqoopdb \
+--username root \
+--password hadoop \
+--table emp2 -m 1 --where 'sex="m"' \
+--target-dir /sqimp4
+
+lenovo@lenovo-Lenovo-G450:~$ hadoop fs -ls /sqimp4
+Found 2 items
+-rw-r--r--   1 lenovo supergroup          0 2017-07-26 13:51 /sqimp4/_SUCCESS
+-rw-r--r--   1 lenovo supergroup         83 2017-07-26 13:51 /sqimp4/part-m-00000
+lenovo@lenovo-Lenovo-G450:~$ hadoop fs -cat /sqimp4/part-m-00000
+101,miller,10000,m,11
+103,john,30000,m,12
+105,Blake,50000,m,11
+106,Ajay,60000,m,11
+----------------------------------------------------------------------------------------------------------------------------
+5)Filtering columns while importing
+i.e importing selective columns....
+
+sqoop import \
+--connect jdbc:mysql://localhost/sqoopdb \
+--username root \
+--password hadoop \
+--table emp2 -m 1 --columns id,name,sal \
+--target-dir /sqimp5
+
+lenovo@lenovo-Lenovo-G450:~$ hadoop fs -ls /sqimp5
+Found 2 items
+-rw-r--r--   1 lenovo supergroup          0 2017-07-26 13:56 /sqimp5/_SUCCESS
+-rw-r--r--   1 lenovo supergroup         96 2017-07-26 13:56 /sqimp5/part-m-00000
+lenovo@lenovo-Lenovo-G450:~$ hadoop fs -cat /sqimp5/part-m-00000
+101,miller,10000
+102,jyothi,20000
+103,john,30000
+104,sonia,40000
+105,Blake,50000
+106,Ajay,60000
+------------------------------------------------------------------------------------------------------------------------------
+6)importing selected columns and filtering
+
+sqoop import \
+--connect jdbc:mysql://localhost/sqoopdb \
+--username root \
+--password hadoop \
+--table emp2 -m 1 --columns id,name,sal --where 'sal>20000' \
+--target-dir /sqimp7
+
+
+$ hadoop fs -ls /sqimp7
+Found 2 items
+-rw-r--r--   1 lenovo supergroup          0 2017-07-26 15:15 /sqimp7/_SUCCESS
+-rw-r--r--   1 lenovo supergroup         63 2017-07-26 15:15 /sqimp7/part-m-00000
+lenovo@lenovo-Lenovo-G450:~$ hadoop fs -cat /sqimp7/part-m-00000
+103,Blake,30000
+104,sonia,40000
+105,Ajay,50000
+106,varun,60000
+
+---------------------------------------------------------------------------------------------------------------------------
+7) Generating New Fields(columns)
+
+sqoop import \
+--connect jdbc:mysql://localhost/sqoopdb \
+--username root \
+--password hadoop \
+--table emp2 -m 1 --columns name,sal,sal*0.1 \
+--target-dir /sqimp8
+
+above import will failed.
+
+ bcoz, sqoop treats  sal*0.1  as column name in the table, but this column is not available, so import is failed.
+
+ in --columns option, we can not give  any arithmetic expressions over the column. can not generate new fields at the time of importing.
+
+ but we can do that using an option --query
+--------------------------------------------------------------------------------------------------------------------------------
+
+8) importing results of select statement 
+
+--query option:
+
+   to retrive executed select statement by rdbms into hadoop.
+
+ any valid select statement is allowed.
+
+for select statement , where clause is mandatory.
+
+for where clause any number of conditions can be given, but $CONDITIONS option is mandatory.
+
+$CONDITIONS is boolean variable.
+ with dafault value FALSE.
+
+when all given expressions are valid,
+  then $CONDITIONS will turn to TRUE.
+here no need of --table option...
+
+if it is true, then sqoop submits statement to rdbms. then importing will be started.
+
+
+
+sqoop import \
+--connect jdbc:mysql://localhost/sqoopdb \
+--username root \
+--password hadoop \
+--query 'select * from emp2 where $CONDITIONS' -m 1  \
+--target-dir /s11
+
+lenovo@lenovo-Lenovo-G450:~$ hadoop fs -ls /sqimp9
+Found 2 items
+-rw-r--r--   1 lenovo supergroup          0 2017-07-27 11:11 /sqimp9/_SUCCESS
+-rw-r--r--   1 lenovo supergroup        126 2017-07-27 11:11 /sqimp9/part-m-00000
+
+lenovo@lenovo-Lenovo-G450:~$ hadoop fs -cat /sqimp9/part-m-00000
+101,miller,10000,m,11
+102,jyothi,20000,f,12
+103,john,30000,m,12
+104,sonia,40000,f,13
+105,Blake,50000,m,11
+106,Ajay,60000,m,11
+------------------------------------------------------------------------------------------------------------------------------
+
+9) Filtering rows using query:
+
+sqoop import \
+--connect jdbc:mysql://localhost/sqoopdb \
+--username root \
+--password hadoop \
+--query 'select * from emp2 where $CONDITIONS and sal>=20000 ' -m 1  \
+--target-dir /sqimp10
+
+lenovo@lenovo-Lenovo-G450:~$ hadoop fs -ls /sqimp10
+Found 2 items
+-rw-r--r--   1 lenovo supergroup          0 2017-07-27 11:25 /sqimp10/_SUCCESS
+-rw-r--r--   1 lenovo supergroup        104 2017-07-27 11:25 /sqimp10/part-m-00000
+lenovo@lenovo-Lenovo-G450:~$ hadoop fs -cat /sqimp10/part-m-00000
+102,jyothi,20000,f,12
+103,john,30000,m,12
+104,sonia,40000,f,13
+105,Blake,50000,m,11
+106,Ajay,60000,m,11
+-----------------------------------------------------------------------------------------------------------------------------
+
+10)generating new fields at the time of importing.
+
+sqoop import \
+--connect jdbc:mysql://localhost/sqoopdb \
+--username root \
+--password hadoop \
+--query 'select  name,sal,sal*0.1,sal*0.2,sal+(sal*0.1)-(sal*0.2) from emp2 where $CONDITIONS'    -m 1 \
+--target-dir  /sqimp11
+
+lenovo@lenovo-Lenovo-G450:~$ hadoop fs -ls /sqimp11
+Found 2 items
+-rw-r--r--   1 lenovo supergroup          0 2017-07-27 11:38 s13/_SUCCESS
+-rw-r--r--   1 lenovo supergroup        205 2017-07-27 11:38 s13/part-m-00000
+
+lenovo@lenovo-Lenovo-G450:~$ hadoop fs -cat /sqimp11/part-m-00000
+miller,10000,1000.0,2000.0,9000.0
+jyothi,20000,2000.0,4000.0,18000.0
+john,30000,3000.0,6000.0,27000.0
+sonia,40000,4000.0,8000.0,36000.0
+Blake,50000,5000.0,10000.0,45000.0
+Ajay,60000,6000.0,12000.0,54000.0
+
+Note: 
+  --table  and --query are mutually exclusive.
+-----------------------------------------------------------------------------------------------------------------------------
+
+11) Merging tables at the time of importing.
+    i.e importing data from 2 different tables
+sqoop import \
+--connect jdbc:mysql://localhost/sqoopdb \
+--username root \
+--password hadoop \
+--query 'select * from emp2 where $CONDITIONS  union all select * from emp where $CONDITIONS'    -m 1 \
+--target-dir /sqimp12
+
+lenovo@lenovo-Lenovo-G450:~$ hadoop fs -ls /sqimp12
+Found 2 items
+-rw-r--r--   1 lenovo supergroup          0 2017-07-27 11:45 /sqimp12/_SUCCESS
+-rw-r--r--   1 lenovo supergroup        252 2017-07-27 11:45 /sqimp12/part-m-00000
+lenovo@lenovo-Lenovo-G450:~$ hadoop fs -cat /sqimp12/part-m-00000
+101,miller,10000,m,11
+102,jyothi,20000,f,12
+103,john,30000,m,12
+104,sonia,40000,f,13
+105,Blake,50000,m,11
+106,Ajay,60000,m,11
+101,miller,10000,m,11
+102,jyothi,20000,f,12
+103,john,30000,m,12
+104,sonia,40000,f,13
+105,Blake,50000,m,11
+106,Ajay,60000,m,11
+
+for each select statement $CONDITIONS is mandatory.
+to eliminate duplicate records use "union" between select statements.
+i.e instead of union all,use only union option
+
+--------------------------------------------------------------------------------------------------------------------------------
+sqoop import \
+--connect jdbc:mysql://localhost/sqoopdb \
+--username root \
+--password hadoop \
+--query "select * from samp where sex='m' and \$CONDITIONS" -m 1  \
+--target-dir /sqimp13
+
+[training@localhost ~]$ hadoop fs -cat /sqimp13/part-m-00000
+101,aaaa,10000,m,12
+105,addda,70000,m,12
+106,adddda,80000,m,11
+[training@localhost ~]$
+
+most of databases, will allow charecter values in double quotes or single quotes.
+
+ but some databases will restrict you , character values should be  in single quotes,
+in such case, select statement of the query option should be started in double quotes.
+ as per java string .,$ .etc have special meanings. to mask them use
+   \$CONDITIONS
+
+--------------------------------------------------------------------------------------------------------------------------------
+
+DURING MERGING, if column order is different,
+
+ --query 'select name, sal from tab1
+   where $CONDITIONS union all
+     select name, sal from tab2
+  where $CONDITIONS'
+
+ COLUMN ORDER OF both select statements should be same.
+
+
+
+-------------------------------------------------------------------------------------------------------------------------------
+
+IF TABLES HAVE different columns...(different schema)
+
+
+ tab1 ---> id, name, sal, sex, dno, 
+
+ tab2 --> id , name, sal, gender, age,city
+
+--query  ' select id, name,sal, sex,dno, 0 as age,"****" as city
+           from tab1 where $CONDITIONS
+            union all
+      select id , name, sal, gender as sex,0 as dno,age,city from tab2
+    where $CONDITIONS'
+
+--------------------------------------------------------------------------------------------------------------------------------
+
+
+
+
+12)Grouping and Aggregations:
+
+case 1:single grouping , single Aggregation
+
+sqoop import \
+--connect jdbc:mysql://localhost/sqoopdb \
+--username root \
+--password hadoop \
+--query 'select sex, sum(sal)  from emp2 where $CONDITIONS group by sex' -m 1  \
+--target-dir /sqimp14
+
+lenovo@lenovo-Lenovo-G450:~$ hadoop fs -ls /sqimp14
+Found 2 items
+-rw-r--r--   1 lenovo supergroup          0 2017-07-27 12:09 /sqimp14/_SUCCESS
+-rw-r--r--   1 lenovo supergroup         17 2017-07-27 12:09 /sqimp14/part-m-00000
+lenovo@lenovo-Lenovo-G450:~$ hadoop fs -cat /sqimp14/part-m-00000
+f,60000
+m,150000
+
+in above case also, there is no involment of reducer, bcoz the query is executed by rdbms,
+ sqoop fetches results of rdbms.. so still mapper only functionality.
+
+In entire sqoop process, "No Reducer Involvement".
+
+--------------------------------------------------------
+
+case 2: multi grouping , single Aggregation
+
+sqoop import \
+--connect jdbc:mysql://localhost/sqoopdb \
+--username root \
+--password hadoop \
+--query 'select dno,sex, sum(sal)  from emp2 where $CONDITIONS group by dno,sex' -m 1  \
+--target-dir /sqimp15
+
+lenovo@lenovo-Lenovo-G450:~$ hadoop fs -cat /sqimp16/part-m-00000
+11,m,120000
+12,f,20000
+12,m,30000
+13,f,40000
+-----------------------------------------------------------
+case 3: single grouping ,multiple Aggregation
+
+sqoop import \
+--connect jdbc:mysql://localhost/sqoopdb \
+--username root \
+--password hadoop \
+--query 'select dno, sum(sal),max(sal),min(sal),avg(sal),count(*)  from emp2 where $CONDITIONS group by dno' -m 1  \
+--target-dir /sqimp16
+
+lenovo@lenovo-Lenovo-G450:~$ hadoop fs -cat /sqimp16/part-m-00000
+11,120000,60000,10000,40000.0000,3
+12,50000,30000,20000,25000.0000,2
+13,40000,40000,40000,40000.0000,1
+
+-----------------------------------------------------------
+case 4: multi grouping ,multiple Aggregation
+
+sqoop import \
+--connect jdbc:mysql://localhost/sqoopdb \
+--username root \
+--password hadoop \
+--query 'select dno,sex,sum(sal),max(sal),min(sal),avg(sal),count(*)  from emp2 where $CONDITIONS group by dno,sex' -m 1  \
+--target-dir /sqimp17
+
+lenovo@lenovo-Lenovo-G450:~$ hadoop fs -cat /sqimp17/part-m-00000
+11,m,120000,60000,10000,40000.0000,3
+12,f,20000,20000,20000,20000.0000,1
+12,m,30000,30000,30000,30000.0000,1
+13,f,40000,40000,40000,40000.0000,1
+
+-------------------------------------------------------------------------------------------------------------------------------
+
+sqoop supports , both etl and elt models.
+
+ for big data(volumes) etl is not recommended.
+
+ first dump all data into hadoop(hdfs),
+ later by using pig/hive/spark/mr perfom transformations, so that processes will happen parallely , transformations will get done fastly.
+
+if table volume is less, for simple transformations,  you can proceed with etl model.
+
+--------------------------------------------------------------------------------------------------------------------------------
+13) working with Delimiter
+
+by default sqoop writes comma (,) delimiter between fields.
+
+to change the delimiter use following option.
+
+  --fields-terminated-by  '\t'
+
+sqoop import \
+--connect jdbc:mysql://localhost/sqoopdb \
+--username root \
+--password hadoop \
+--query 'select * from emp2 where $CONDITIONS' -m 1  \
+--fields-terminated-by '\t'  \
+--target-dir /sqimp18
+
+lenovo@lenovo-Lenovo-G450:~$ hadoop fs -ls /sqimp18
+Found 2 items
+-rw-r--r--   1 lenovo supergroup          0 2017-07-27 12:35 /sqimp15/_SUCCESS
+-rw-r--r--   1 lenovo supergroup        126 2017-07-27 12:35 /sqimp15/part-m-00000
+lenovo@lenovo-Lenovo-G450:~$ hadoop fs -cat /sqimp18/part-m-00000
+101	miller	10000	m	11
+102	jyothi	20000	f	12
+103	john	30000	m	12
+104	sonia	40000	f	13
+105	Blake	50000	m	11
+106	Ajay	60000	m	11
+-------------------------------------------------------------------------------------------------------------------------------
+
+14) JOINS:
+
+mysql> create table dept(dno int primary key,dname char(10),loc char(10));
+
+
+mysql> insert into dept values(11,'mrkt','hyd');
+
+
+mysql> insert into dept values(12,'finance','hyd');
+
+
+mysql> insert into dept values(13,'HR','pune');
+
+
+mysql> insert into dept values(17,'mrkt','pune');
+
+mysql> insert into dept values(18,'finance','hyd');
+
+
+mysql> insert into dept values(19,'HR','hyd');
+
+
+mysql> select * from dept;
++-----+---------+------+
+| dno | dname   | loc  |
++-----+---------+------+
+|  11 | mrkt    | hyd  |
+|  12 | finance | hyd  |
+|  13 | HR      | pune |
+|  17 | mrkt    | pune |
+|  18 | finance | hyd  |
+|  19 | HR      | hyd  |
++-----+---------+------+
+6 rows in set (0.05 sec)
+
+mysql> select * from emp;
++-----+--------+-------+------+------+
+| id  | name   | sal   | sex  | dno  |
++-----+--------+-------+------+------+
+| 101 | miller | 10000 | m    |   11 |
+| 102 | jyothi | 20000 | f    |   12 |
+| 103 | john   | 30000 | m    |   12 |
+| 104 | sonia  | 40000 | f    |   13 |
+| 105 | Blake  | 50000 | m    |   11 |
+| 106 | Ajay   | 60000 | m    |   11 |
++-----+--------+-------+------+------+
+6 rows in set (0.04 sec)
+
+mysql> insert into emp values(107,'Amit',70000,'m',14);
+
+
+mysql> insert into emp values(108,'Amala',80000,'f',15);
+
+
+mysql> insert into emp values(109,'kohli',90000,'m',16);
+
+mysql> select * from emp;
++-----+--------+-------+------+------+
+| id  | name   | sal   | sex  | dno  |
++-----+--------+-------+------+------+
+| 101 | miller | 10000 | m    |   11 |
+| 102 | jyothi | 20000 | f    |   12 |
+| 103 | john   | 30000 | m    |   12 |
+| 104 | sonia  | 40000 | f    |   13 |
+| 105 | Blake  | 50000 | m    |   11 |
+| 106 | Ajay   | 60000 | m    |   11 |
+| 107 | Amit   | 70000 | m    |   14 |
+| 108 | Amala  | 80000 | f    |   15 |
+| 109 | kohli  | 90000 | m    |   16 |
++-----+--------+-------+------+------+
+9 rows in set (0.00 sec)
+
+case 1: Inner join (matchings from both side)
+
+sqoop import \
+--connect jdbc:mysql://localhost/sqoopdb \
+--username root \
+--password hadoop \
+--query 'select id,name,sal,sex,e.dno,dname,loc from emp e join dept d on e.dno=d.dno where $CONDITIONS' -m 1 \
+--target-dir /s19
+
+lenovo@lenovo-Lenovo-G450:~$ hadoop fs -cat /s19/part-m-00000
+101,miller,10000,m,11,mrkt,hyd
+105,Blake,50000,m,11,mrkt,hyd
+106,Ajay,60000,m,11,mrkt,hyd
+102,jyothi,20000,f,12,finance,hyd
+103,john,30000,m,12,finance,hyd
+104,sonia,40000,f,13,HR,pune
+
+
+case 2: Left outer join(matchings + left out records of left side)
+
+sqoop import \
+--connect jdbc:mysql://localhost/sqoopdb \
+--username root \
+--password hadoop \
+--query 'select id,name,sal,sex,e.dno,dname,loc from emp e left outer join dept d on e.dno=d.dno where $CONDITIONS' -m 1 \
+--target-dir /s20
+
+lenovo@lenovo-Lenovo-G450:~$ hadoop fs -cat /s20/part-m-00000
+101,miller,10000,m,11,mrkt,hyd
+105,Blake,50000,m,11,mrkt,hyd
+106,Ajay,60000,m,11,mrkt,hyd
+102,jyothi,20000,f,12,finance,hyd
+103,john,30000,m,12,finance,hyd
+104,sonia,40000,f,13,HR,pune
+107,Amit,70000,m,14,null,null
+108,Amala,80000,f,15,null,null
+109,kohli,90000,m,16,null,null
+
+case 3: Right outer join(matchings + left out records of right side)
+
+sqoop import \
+--connect jdbc:mysql://localhost/sqoopdb \
+--username root \
+--password hadoop \
+--query 'select id,name,sal,sex,e.dno,dname,loc from emp e right outer join dept d on e.dno=d.dno where $CONDITIONS' -m 1 \
+--target-dir /s21 
+
+lenovo@lenovo-Lenovo-G450:~$ hadoop fs -cat /s21/part-m-00000
+101,miller,10000,m,11,mrkt,hyd
+102,jyothi,20000,f,12,finance,hyd
+103,john,30000,m,12,finance,hyd
+104,sonia,40000,f,13,HR,pune
+105,Blake,50000,m,11,mrkt,hyd
+106,Ajay,60000,m,11,mrkt,hyd
+null,null,null,null,null,mrkt,pune
+null,null,null,null,null,finance,hyd
+null,null,null,null,null,HR,hyd
+
+case 4: Full outer join(matchings +left out records of left side + left out records of right side)
+
+sqoop import \
+--connect jdbc:mysql://localhost/sqoopdb \
+--username root \
+--password hadoop \
+--query 'select id,name,sal,sex,e.dno,dname,loc from emp e full outer join dept d on e.dno=d.dno where $CONDITIONS' -m 1 \
+--target-dir /s22
+
+---------------------------------------------------------------------------------------------------------------------------
+15)to import data into existed directory .
+
+ use..
+
+    --append
+
+every time, a new file will be generated in the same directory.
+
+
+sqoop import \
+--connect jdbc:mysql://localhost/sqoopdb \
+--username root \
+--password hadoop \
+--query 'select id,name,sal,sex,e.dno,dname,loc from emp e right outer join dept d on e.dno=d.dno where $CONDITIONS' -m 1 \
+--target-dir /s21 \
+--append
+
+lenovo@lenovo-Lenovo-G450:~$ hadoop fs -ls /s21
+Found 3 items
+-rw-r--r--   1 lenovo supergroup          0 2017-07-28 12:22 /s21/_SUCCESS
+-rw-r--r--   1 lenovo supergroup        289 2017-07-28 12:22 /s21/part-m-00000
+-rw-r--r--   1 lenovo supergroup        289 2017-07-28 12:42 /s21/part-m-00001
+lenovo@lenovo-Lenovo-G450:~$ hadoop fs -cat /s21/part-m-00000
+101,miller,10000,m,11,mrkt,hyd
+102,jyothi,20000,f,12,finance,hyd
+103,john,30000,m,12,finance,hyd
+104,sonia,40000,f,13,HR,pune
+105,Blake,50000,m,11,mrkt,hyd
+106,Ajay,60000,m,11,mrkt,hyd
+null,null,null,null,null,mrkt,pune
+null,null,null,null,null,finance,hyd
+null,null,null,null,null,HR,hyd
+lenovo@lenovo-Lenovo-G450:~$ hadoop fs -cat /s21/part-m-00001
+101,miller,10000,m,11,mrkt,hyd
+102,jyothi,20000,f,12,finance,hyd
+103,john,30000,m,12,finance,hyd
+104,sonia,40000,f,13,HR,pune
+105,Blake,50000,m,11,mrkt,hyd
+106,Ajay,60000,m,11,mrkt,hyd
+null,null,null,null,null,mrkt,pune
+null,null,null,null,null,finance,hyd
+null,null,null,null,null,HR,hyd
+
+
+
+

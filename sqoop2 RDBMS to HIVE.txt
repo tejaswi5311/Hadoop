@@ -1,0 +1,60 @@
+
+1) importing from RDBMS-------->hive tables
+
+hive> create database sqdb;
+
+hive> use sqdb;
+
+hive> show tables;
+
+
+hive>
+create table emp(id int, name string,
+        sal int , sex string, dno int)    
+        row format delimited
+        fields terminated by ',';
+
+hive> select * from emp;
+OK
+Time taken: 0.247 seconds
+
+
+sqoop import  --connect jdbc:mysql://localhost/sqoopdb1  --username root  --password hadoop --table emp2 -m 1 --target-dir /user/hive/warehouse/sqdb.db/emp --append --fields-terminated-by ','
+
+
+Note: here we use --append bcoz whenever hivetable created, in the backend with tablename one directory created so append data to same directory
+lenovo@lenovo-Lenovo-G450:~$ hadoop fs -ls /user/hive/warehouse/mydb.db
+Found 1 items
+drwxr-xr-x   - lenovo supergroup          0 2017-07-31 10:20 /user/hive/warehouse/mydb.db/emp
+lenovo@lenovo-Lenovo-G450:~$ hadoop fs -ls /user/hive/warehouse/sqdb.db
+Found 1 items
+drwxr-xr-x   - lenovo supergroup          0 2017-07-31 10:28 /user/hive/warehouse/sqdb.db/emp
+lenovo@lenovo-Lenovo-G450:~$ hadoop fs -ls /user/hive/warehouse/sqdb.db/emp
+Found 1 items
+-rw-r--r--   1 lenovo supergroup        127 2017-07-31 10:28 /user/hive/warehouse/sqdb.db/emp/part-m-00000
+lenovo@lenovo-Lenovo-G450:~$ hadoop fs -cat /user/hive/warehouse/sqdb.db/emp/part-m-00000
+101,miller,10000,m,11
+102,jyothi,20000,f,12
+103,Blake,30000,m,12
+104,sonia,40000,f,13
+105,Ajay,50000,m,11
+106,varun,60000,m,11
+
+hive> select * from emp;
+OK
+101	miller	10000	m	11
+102	jyothi	20000	f	12
+103	Blake	30000	m	12
+104	sonia	40000	f	13
+105	Ajay	50000	m	11
+106	varun	60000	m	11
+
+sqoop write two types of delimiters,
+ i) while writing into hdfs,
+   sq writes "," delimiter.  (default), you can change if delimiter is different,
+ ii) while writing into hive tables,
+  sq writes '\001'  delimiter ,so everytime while importing we need to specify the delimiter otherwise it uses diamond delimiter
+
+ex:--fields-terminated-by ','
+
+

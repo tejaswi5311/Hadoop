@@ -1,0 +1,196 @@
+
+Exporting from HDFS to mysql
+
+ex1:
+ cat > marks
+Rohith,70,80,50
+Ajith,85,65,45
+Aruna,85,75,65
+kamal,90,80,60
+miller,75,85,95
+
+//copy to hdfs
+
+hadoop fs -mkdir /hadooplab
+hadoop fs -put marks /hadooplab
+
+hadoop fs -cat /hadooplab/marks
+Rohith,70,80,50
+Ajith,85,65,45
+Aruna,85,75,65
+kamal,90,80,60
+miller,75,85,95
+
+Note: in Hadoop no of mappers = no of unique blocks
+      so at the time of exporting,we cannot control the mappers
+      
+
+
+mysql> create table stdmarks(name varchar(10),s1 int,s2 int,s3 int);
+
+sqoop export \
+--connect jdbc:mysql://localhost/sqoopdb \
+--username root \
+--password hadoop \
+--table stdmarks \
+--export-dir /hadooplab/marks
+
+mysql> select * from stdmarks;
++--------+------+------+------+
+| name   | s1   | s2   | s3   |
++--------+------+------+------+
+| Rohith |   70 |   80 |   50 |
+| Ajith  |   85 |   65 |   45 |
+| kamal  |   90 |   80 |   60 |
+| miller |   75 |   85 |   95 |
+| Aruna  |   85 |   75 |   65 |
++--------+------+------+------+
+5 rows in set (0.01 sec)
+
+Even we can export total directory hadooplab, ex if it has 10 files of same schema
+
+If the table has primary key, 
+ex:primary key on id column
+   if particular id(101) is repeating in hdfs file,then the export will fail
+   so first eliminate the duplicates first from hdfs file and then export
+
+
+---------------------------------------------------------------------------------------------------------------------
+2) If delimiter of hdfs file is tabspace('\t')
+
+cat > tab
+10	20	30
+40	50      60
+70      80	90
+
+lenovo@lenovo-Lenovo-G450:~$ hadoop fs -put tab /hadooplab
+lenovo@lenovo-Lenovo-G450:~$ hadoop fs -cat /hadooplab/tab
+10	20	30
+40	50	60
+70	80	90
+
+mysql> create table samp1(s1 int,s2 int,s3 int);
+
+sqoop export \
+--connect jdbc:mysql://localhost/sqoopdb \
+--username root \
+--password hadoop \
+--table samp1 \
+--export-dir /hadooplab/tab \
+--input-fields-terminated-by '\t'
+
+mysql> select * from samp1;
++------+------+------+
+| s1   | s2   | s3   |
++------+------+------+
+|   40 |   50 |   60 |
+|   10 |   20 |   30 |
+|   70 |   80 |   90 |
++------+------+------+
+3 rows in set (0.00 sec)
+
+Again if u execute the same sqoop import.......or export another file with same schema 
+then rows will be appended but not overwritten.....
+
+sqoop export \
+--connect jdbc:mysql://localhost/sqoopdb \
+--username root \
+--password hadoop \
+--table samp1 \
+--export-dir /hadooplab/tab \
+--input-fields-terminated-by '\t'
+
+mysql> select * from samp1;
++------+------+------+
+| s1   | s2   | s3   |
++------+------+------+
+|   40 |   50 |   60 |
+|   10 |   20 |   30 |
+|   70 |   80 |   90 |
+|   70 |   80 |   90 |
+|   10 |   20 |   30 |
+|   40 |   50 |   60 |
++------+------+------+
+6 rows in set (0.00 sec)
+-------------------------------------------------------------------------------------------------------------------------
+3) Exporting Data from hive table-------->RDBMS(mysql)
+
+
+hive> create database sqdb;
+
+hive> use sqdb;
+
+hive> show tables;
+
+
+hive> create table emp1(id int, name string,sal int , sex string, dno int)    
+       row format delimited
+       fields terminated by ',';
+
+hive>load data local inpath 'emp5' into table emp1;
+
+hive> select * from emp1;
+OK
+101	miller	10000	m	11
+102	Rohini	20000	f	12
+103	Blake	30000	m	12
+104	sajini	40000	f	13
+105	Rahul	50000	m	11
+Time taken: 0.161 seconds, Fetched: 5 row(s)
+
+
+hive> create table mulgrpaggr(dno int, sex string,totsal int)
+    > row format delimited
+    > fields terminated by ',';
+
+
+hive> insert overwrite table mulgrpaggr
+    > select dno,sex,sum(sal) from emp1 group by dno,sex;
+
+hive> select * from mulgrpaggr;
+OK
+11	m	60000
+12	f	20000
+12	m	30000
+13	f	40000
+Time taken: 0.464 seconds, Fetched: 4 row(s)
+
+mysql> create table samp2(dno int,sex varchar(3),totsal int);
+
+sqoop export \
+--connect jdbc:mysql://localhost/sqoopdb \
+--username root \
+--password hadoop \
+--table samp2 \
+--export-dir /user/hive/warehouse/sqdb.db/mulgrpaggr/000000_0 
+
+mysql> select * from samp2;
++------+------+--------+
+| dno  | sex  | totsal |
++------+------+--------+
+|   11 | m    |  60000 |
+|   12 | f    |  20000 |
+|   13 | f    |  40000 |
+|   12 | m    |  30000 |
++------+------+--------+
+4 rows in set (0.00 sec)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
