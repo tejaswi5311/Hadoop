@@ -1,0 +1,501 @@
+HIVE introduction:
+
+-It is a datawarehouse environment in hadoop framework.
+-Here we can store data into tables in structured format
+-In MR or PIG,there are no tables,they r reading and writing data into HDFS/LFS
+-for PIG-------->PIG LATIN
+-for oracle----->SQL
+-for HIVE------->hql (Hive Query language)
+
+
+
+
+Hive(hql) Features :
+-hql is used to manage and process data which is similar to sql,but have some differences
+-hql can process
+1.Structured data
+2.XML data
+3.Json data
+4.Urls(weblog)
+
+-hive has pre-defined XML-parsers and Json parsers
+-Hive data will be stored in HDFS only,default storage location is /user/hive/warehouse
+-whatever the sql kind of queries,we are using in hive,they are internally converted into corresponding mapreduce jobs only
+
+Hadoop is not for record level operation
+Hadoop is for batch level operation.(bulk level)
+
+
+
+
+
+There are 2 types of tables in hive
+1)Internal tables (or)Managed tables
+2)External tables
+
+Default table is Internal table
+
+1)Internal table: 
+
+creating internal table:
+syntax: create table tablename(schema)
+         row format delimited
+         fields terminated by <delimiter>
+         lines terminated by <delimiter>
+         stored as <fileformat>
+
+
+
+
+loading data into table:
+
+1)From LFS(local mode):
+  load data local inpath '<localpath>' into table <tablename>
+
+2)From HDFS(HDFS mode):here no need of keyword local
+  load data  inpath '<HDFS path>' into table <tablename>
+
+default storage location in hive is /user/hive/warehouse
+
+
+
+2)External tables: 
+creating External table: using keyword external
+syntax: create external table tablename(schema definition)
+         row format delimited
+         fields terminated by <delimiter>
+         lines terminated by <delimiter>
+         stored as <fileformat>
+loading data is same.
+
+when you load data from hdfs to hive table---->it follows ctrl+x and paste
+wont be available in source,will be available only in destination
+
+Diff b/w internal and External Tables..
+when we delete a internal table,its both data and meta data is lost
+when we delete a external table,only metadata is lost but data remains
+
+
+
+
+Practicals:
+ 
+hive> show databases;
+
+-- lists all existed databases;
+
+
+hive> show tables;
+---lists all existed tables
+
+
+cat > file1
+Good morning........ 
+Good Morning........ 
+God Morning......... 
+
+Creating internal tables:
+
+hive> create table mysamp1(line string);
+
+
+hive> load data local inpath 'file1' into table mysamp1;
+
+location of default database: /user/hive/warehouse
+
+
+A directory will be created with the tablename mysamp1 automatically in the path /user/hive/warehouse/mysamp1
+
+[training@localhost ~]$ hadoop fs -ls /user/hive/warehouse/mysamp1
+Found 1 items
+-rw-r--r--   1 training supergroup         50 2016-06-15 07:21 /user/hive/warehouse/mysamp1/file1
+
+
+
+when ever a table is created under default database, in hdfs one directory will created with table name.
+
+ when you load a file into table,the file will be copied into backend table's directory.
+
+ location of default database:
+  /user/hive/warehouse 
+
+
+
+hive> select * from mysamp1;
+OK
+Good morning........ 
+Good Morning........ 
+Good Morning........
+Time taken: 0.166 seconds
+hive> 
+
+when select statement is submitted, hive starts reading from table's backend directory(all files of directory).
+
+[training@localhost ~]$ cat > file2
+Hello........
+Hello........
+Hello........
+Hello........
+
+hive> load data local inpath 'file2'into table mysamp1;
+
+
+[training@localhost ~]$ hadoop fs -ls /user/hive/warehouse/mysamp1
+Found 2 items
+-rw-r--r--   1 training supergroup         50 2016-06-15 07:21 /user/hive/warehouse/mysamp1/file1
+-rw-r--r--   1 training supergroup         55 2016-06-15 07:28 /user/hive/warehouse/mysamp1/file2
+[training@localhost ~]$ 
+
+hive> select * from mysamp;
+OK
+Good morning........ 
+Good Morning........ 
+Good Morning........
+Hello........
+Hello........
+Hello........
+Hello........
+Time taken: 0.065 seconds
+
+when file is removed:
+[training@localhost ~]$ hadoop fs -rm /user/hive/warehouse/mysamp1/file1
+
+[training@localhost ~]$ hadoop fs -ls /user/hive/warehouse/mysamp1
+Found 2 items
+-rw-r--r--   1 training supergroup         55 2016-06-15 07:28 /user/hive/warehouse/mysamp1/file2
+hive> select * from mysamp;
+OK
+Hello........
+Hello........
+Hello........
+Hello........
+
+
+when table is dropped
+
+hive>drop table mysamp1;
+-- here, hive reading from all files of backend directory.
+
+[training@localhost ~]$ hadoop fs -ls /user/hive/warehouse/mysamp
+ls: Cannot access /user/hive/warehouse/mysamp: No such file or directory.
+
+-- as above operation, 
+  when table is dropped, 
+    in hdfs, the backend directory also will be deleted.
+
+--- means, metadata and data both are dropped.
+  this is behavior of "inner table" 
+
+
+ i) internal table. (default)
+  --if table is dropped, both metadata and data will be deleted 
+  from hive table and in hdfs, backend directory also will be deleted.
+
+ ii) external table.
+  -- if table is dropped, only metadata will be deleted from hive table,but still backend directory is available with data files,
+so that we can re use.
+
+creating external table: we use keyword external,
+
+hive> create external table ursamp1(line  string);
+
+hive> load data local inpath 'file1' into table ursamp1;
+
+hive> load data local inpath 'file2' into table ursamp1;
+
+
+[training@localhost ~]$ hadoop  fs -ls /user/hive/warehouse/ursamp1
+Found 2 items
+-rw-r--r--   1 training supergroup         50 2016-06-15 07:40 /user/hive/warehouse/ursamp/file1
+-rw-r--r--   1 training supergroup         55 2016-06-15 07:40 /user/hive/warehouse/ursamp/file2
+[training@localhost ~]$ 
+
+hive> select * from ursamp1;
+OK
+Good morning........ 
+Good Morning........ 
+Good Morning........
+Hello........
+Hello........
+Hello........
+Hello........
+Time taken: 0.081 seconds
+hive> 
+
+hive> drop table ursamp1;
+
+hive> select * from ursamp1;
+
+table doesn't exist
+
+but still data is available,but metadata is deleted 
+
+[training@localhost ~]$ hadoop  fs -ls /user/hive/warehouse/ursamp1
+Found 2 items
+-rw-r--r--   1 training supergroup         50 2016-06-15 07:40 /user/hive/warehouse/ursamp/file1
+-rw-r--r--   1 training supergroup         55 2016-06-15 07:40 /user/hive/warehouse/ursamp/file2
+[training@localhost ~]$ 
+
+
+from hive ursamp is deleted,
+hive>select * from ursamp1;
+
+  but still ursamp directory with data files safely available in warehouse location.
+
+adv of exteral table reuse of the data.
+
+___________________________________
+
+how to reuse.?
+
+hive> create table ursamp1(line string); 
+it will be created,and has previous data in it
+
+-- create behavior,
+
+   if table's directory (ursamp1) is already available , it will use it.
+ if not available, it will create directory.
+
+next if i create external table with same name ursamp1,it wont be created,already exists
+
+again drop ursamp1
+now creating ursamp1 table with different metadata
+create table ursamp1(line1 string,line2 int)
+select * from ursamp1;
+2nd field it displays null in each lines________________
+hive> select * ursamp1;
+OK
+Good morning.........	NULL
+Good morning........	NULL
+Good morning........	NULL
+Hello...........	NULL
+Hello...........	NULL
+Hello..........	NULL
+------------------------------------------------------------------------------------------------
+load data from hdfs also it follows cut+paste
+-------------------------------------------------------------------------------------------------
+creating our own database.
+
+hive> create database mydb1;
+OK
+Time taken: 0.029 seconds
+hive> use mydb1;                       
+OK
+Time taken: 0.013 seconds
+hive> create table urtab1(line string);
+OK
+Time taken: 0.04 seconds
+hive> 
+
+[training@localhost ~]$ hadoop fs -ls /user/hive/warehouse/mydb1.db
+Found 1 items
+drwxr-xr-x   - training supergroup          0 2016-06-15 07:56 /user/hive/warehouse/mydb.db/urtab1
+[training@localhost ~]$ 
+
+in hdfs, under warehouse location with  database name and with .db extension one directory will be created.
+
+    mydb1.db
+
+ hive> load data local inpath 'file1' into table urtab;
+
+[training@localhost ~]$ hadoop fs -ls /user/hive/warehouse/mydb1.db/urtab1
+Found 1 items
+-rw-r--r--   1 training supergroup         50 2016-06-15 07:59 /user/hive/warehouse/mydb1.db/urtab1/file1
+
+________________________________
+
+create table's directory under custom location.
+
+hive> create table mytab1(line string) location '/user/myloc1';
+OK
+Time taken: 0.034 seconds
+hive> load data local inpath 'file1' into table mytab1;
+
+
+[training@localhost ~]$ hadoop fs -ls /user/myloc11
+Found 1 items
+-rw-r--r--   1 training supergroup         50 2016-06-15 08:02 /user/myloc/file1
+[training@localhost ~]$ 
+
+
+--- with name /user/myloc1 one directory is created for mytab table.
+
+______________________________________
+Loading data:
+1.From LFS
+2.From HDFS
+
+1.loading data from LFS:
+  load data local inpath 'file1' into table mytab;
+  
+2.Loading data from HDFS: here no need of keywod local
+  load data inpath '/hivelab/file1' into table mytab;
+
+
+
+ex: If one file is deleted in table directory,other file exists
+
+ining@localhost ~]$ hadoop  fs -ls /user/hive/warehouse/ursamp1
+Found 2 items
+-rw-r--r--   1 training supergroup         50 2016-06-15 07:40 /user/hive/warehouse/ursamp/file1
+-rw-r--r--   1 training supergroup         55 2016-06-15 07:40 /user/hive/warehouse/ursamp/file2
+[training@localhost ~]$ 
+hadoop fs -rm /user/hive/warehouse/ursamp/file1
+
+hive>select * from ursamp;
+displays o/p of file2
+-remove file2 also and observe
+
+Regularly used data keep in external table
+intermediatory data or temporary data,keep in internal table
+
+ex: custom locations
+
+hive>create table mytab2(line string) location '/user/vijay1';
+hive>create table urtab2(line string) location '/user/vijay1';
+
+both share data and location
+
+
+
+hive>load data local inpath 'file1' into table mytab2;
+select * from mytab2;
+
+displays file1
+
+select * from urtab2;
+
+displays file1
+here without loading data,data is available
+hive>load data local inpath 'file2' into table urtab2;
+
+file2 appended to file1
+this o/p can be seen in both mytab2 and urtab2
+
+drop table urtab2;
+select * from mytab2;
+
+
+
+
+Both internal and external tables can use custom locations.
+
+
+hive> create table hvtab1(line string) location '/user/ursloc';
+hive> load data local inpath 'file1' into table hvtab1;
+
+[training@localhost ~]$ hadoop fs -ls /user/ursloc
+Found 1 items
+-rw-r--r--   1 training supergroup         61 2016-06-23 21:15 /user/ursloc/file1
+[training@localhost ~]$ 
+
+A Single Location can be applied for mutliple tables.
+
+hive> create table hvtab2(line string) location '/user/ursloc';
+
+now both tables use same data and same location.
+hvtab1 and hvtab2 tables will have same data
+select * from hvtab1;
+select * from hvtab2;
+_____________
+
+how to reuse tables
+
+hive> create external table xtab(line string);
+
+hive> load data local inpath 'file1' into table xtab;
+
+hive> select * from xtab;
+OK
+aaaaaaaaaaaaaaaaa
+aaaaaaaaaaaaaaaaaaa
+aaaaaaaaaaaaaaaaaaaaaa
+
+hive> drop table xtab;
+
+hive> show tables;
+OK
+raw
+results
+tmpr
+
+xtab is not present
+again creating xtab
+
+hive> create table xtab(line string);
+
+now if u select,we have previous data
+hive> select * from xtab;
+OK
+aaaaaaaaaaaaaaaaa
+aaaaaaaaaaaaaaaaaaa
+aaaaaaaaaaaaaaaaaaaaaa
+T
+
+-- create behavior:
+  if directory is already existed, it will use it, if not existed, it will create a new directory.
+
+
+_________________
+
+what if, backend directory is deleted.
+ what will happen to table?
+
+ table will not be deleted. data is deleted
+
+[training@localhost ~]$ hadoop fs -ls /user/hive/warehouse/urtmpr.db/raw
+Found 1 items
+-rw-r--r--   1 training supergroup        167 2016-06-23 21:00 /user/hive/warehouse/urtmpr.db/raw/tmpr2.txt
+[training@localhost ~]$ hadoop fs -rmr /user/hive/warehouse/urtmpr.db/raw
+Deleted hdfs://localhost/user/hive/warehouse/urtmpr.db/raw
+
+
+
+hive> show tables;
+OK
+raw
+results
+tmpr
+xtab
+Time taken: 0.045 seconds
+hive> select * from raw;
+OK
+Time taken: 0.036 seconds
+
+________________
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -1,0 +1,64 @@
+Table to Table copy
+
+Task: To find year wise,max and min sales
+Query:select year,max(sales),min(sales) from htab2 group by year 
+hive> create database mysales;
+
+hive> use mysales;
+
+hive> create table htab1(line string);
+
+hive> load data local inpath 'sales' into table htab1;
+
+hive> select * from htab1;
+OK
+hyd 2015 apr 35
+pun 2015 may 25
+ban 2015 jun 40
+hyd 2016 apr 45
+pun 2016 may 33
+ban 2016 jun 43
+hyd 2017 apr 44
+pun 2017 may 51
+ban 2017 jun 49
+
+create one more table to store year and sales
+
+hive> create table htab2(year int,sales int);
+OK
+
+hive> insert overwrite table htab2 select substr(line,5,4),substr(line,14,2) from htab1;
+
+hive> select * from htab2;
+OK
+2015	35
+2015	25
+2015	40
+2016	45
+2016	33
+2016	43
+2017	44
+2017	51
+2017	49
+Time taken: 0.18 seconds, Fetched: 9 row(s)
+hive> describe htab2;
+OK
+year                	int                 	                    
+sales               	int                 	                    
+Time taken: 0.152 seconds, Fetched: 2 row(s)
+
+create one more table for storing year,max,min values
+
+hive> create table htab3(year int,max int,min int);
+OK
+Time taken: 0.212 seconds
+hive> insert overwrite table htab3 select year,max(sales),min(sales) from htab2 group by year;
+
+hive> select * from htab3;
+OK
+2015	40	25
+2016	45	33
+2017	51	44
+Time taken: 0.231 seconds, Fetched: 3 row(s)
+hive> 
+

@@ -1,0 +1,111 @@
+//working with delimiters
+
+Loading files into table(multiple columns)
+cat > emp
+101,anil,10000,m,11
+102,anitha,20000,f,12
+103,manish,30000,m,12
+104,sita,40000,f,13
+
+hive>create table empl(id int,name string,sal int,sex string, dno int);
+
+loading data
+
+hive>load data local inpath 'emp' into table empl;
+
+hive>select * from empl;
+,,,,
+,,,,
+,,,,
+,,,,
+here we get all nulls, the problem is delimiter
+
+The solution is:
+
+hive>create table myemp(id:int,name string,sal int,sex string, dno int)
+   >row format delimited
+   >fields terminated by ',';
+
+hive>load data local inpath 'emp' into table myemp;
+
+hive>select * from myemp;
+101 anil   10000 m 11
+102 anitha 20000 f 12
+103 manish 30000 m 12
+104 sita   40000 f 13
+also observe the result in hdfs
+
+I want males total salary and females total salary
+we require only 2 cols sex and sal
+load this result into a table and use '\t' as delimiter
+
+hive>create table results(sex string, tot int)
+  >row format delimited
+  >fields terminated by '\t';
+
+now table to table copy
+
+hive>insert overwrite table results
+     select sex,sum(sal) from myemp group by sex:
+hive>select * from results
+f 82000
+m 78000
+
+observe the results in hdfs............/results/000000_0
+o/p: 
+f 82000
+m 78000
+
+hive>quit;
+
+//overwriting tables
+
+hive>create table emps1(id:int,name string,sal int,sex string, dno int)
+  >>row format delimited
+   >fields terminated by ',';
+
+hive>load data local inpath 'emp1' into table emps1;
+hive>load data local inpath 'emp2' into table emps1;
+
+select * from emps1;
+
+emp2 appended to emp1
+
+I want to overwrite the table
+hive>load data local inpath 'emp2' overwrite into table emps1;
+
+select * from emps1;
+
+displays only emp2
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

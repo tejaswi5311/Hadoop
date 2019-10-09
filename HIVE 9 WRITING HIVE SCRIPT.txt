@@ -1,0 +1,43 @@
+Writing and executing hive script:
+
+$ gedit hivejsonscript1.hql
+
+
+create database hivedb;
+
+use hivedb;
+
+create table jsamp1(line string);
+
+load data local inpath 'json2' into table jsamp1;
+
+select * from jsamp1;
+
+
+
+create table jsamp2(name string, age int, wife string, city string);
+
+insert overwrite table jsamp2
+       select x.* from jsamp1
+      lateral view json_tuple(line,'name','age','wife','city') x as n,a,w,c;
+
+select * from jsamp2;
+
+
+
+create table jsamp3(hname string, wname string,hage int, wage int, city string);
+
+insert overwrite table jsamp3
+        select name, get_json_object(wife,'$.name'),
+        age , get_json_object(wife,'$.age'),
+       city from jsamp2;
+
+select * from jsamp3;
+
+
+For submitting or Executing the script:
+open a new terminal and type this
+
+ $ hive -f hivejsonscript1.hql
+
+All the statements will be executing one by one
