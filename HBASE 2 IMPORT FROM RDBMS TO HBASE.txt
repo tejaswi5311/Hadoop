@@ -1,0 +1,476 @@
+
+Importing data from RDBMS to Hbase
+sqoop and hbase
+__________________
+(MySQL+Sqoop+HBase)
+1) Importing data from Rdbms to Hbase table.
+
+open 4 terminals
+1st--->for HDFS
+2nd--->for Hbase
+3rd--->for mysql
+4th--->for sqoop
+
+open mysql:
+mql -u root -p
+
+mysql> create database  sqoopdb;
+
+mysql> use sqoopdb;
+
+
+mysql>create table emp(id int primary key,name char(10),sal int,sex char(1),dno int);  
+
+mysql> insert into emp values(101,'miller',10000,'m',11);
+
+
+mysql> insert into emp values(102,'jyothi',20000,'f',12);
+
+
+mysql> insert into emp values(103,'john',30000,'m',12);
+
+
+mysql> insert into emp values(104,'sonia',40000,'f',13);
+
+
+mysql> insert into emp values(105,'Blake',50000,'m',11);
+
+
+mysql> insert into emp values(106,'Ajay',60000,'m',11);
+
+
+
+mysql> insert into emp values(107,'Amit',70000,'m',14);
+
+
+mysql> insert into emp values(108,'Amala',80000,'f',15);
+
+
+mysql> insert into emp values(109,'kohli',90000,'m',16);
+
+mysql> select * from emp;
++-----+--------+-------+------+------+
+| id  | name   | sal   | sex  | dno  |
++-----+--------+-------+------+------+
+| 101 | miller | 10000 | m    |   11 |
+| 102 | jyothi | 20000 | f    |   12 |
+| 103 | john   | 30000 | m    |   12 |
+| 104 | sonia  | 40000 | f    |   13 |
+| 105 | Blake  | 50000 | m    |   11 |
+| 106 | Ajay   | 60000 | m    |   11 |
+| 107 | Amit   | 70000 | m    |   14 |
+| 108 | Amala  | 80000 | f    |   15 |
+| 109 | kohli  | 90000 | m    |   16 |
++-----+--------+-------+------+------+
+9 rows in set (0.07 sec)
+
+
+hbase(main):047:0> create 'hemp1','e'
+
+
+[training@localhost ~]$ sqoop import \
+--connect jdbc:mysql://localhost/sqoopdb \
+--username root \
+--password hadoop \
+--table emp  \
+--hbase-table hemp1 \
+--column-family e
+
+
+// in single line
+sqoop import --connect jdbc:mysql://localhost/sqoopdb --username root --password hadoop --table emp --hbase-table hemp1 --column-family e
+
+
+hbase(main):002:0> scan 'hemp1'
+ROW                                   COLUMN+CELL                                                                                               
+ 101                                  column=e:dno, timestamp=1502127410617, value=11                                                           
+ 101                                  column=e:name, timestamp=1502127410617, value=miller                                                      
+ 101                                  column=e:sal, timestamp=1502127410617, value=10000                                                        
+ 101                                  column=e:sex, timestamp=1502127410617, value=m                                                            
+ 102                                  column=e:dno, timestamp=1502127410617, value=12                                                           
+ 102                                  column=e:name, timestamp=1502127410617, value=jyothi                                                      
+ 102                                  column=e:sal, timestamp=1502127410617, value=20000                                                        
+ 102                                  column=e:sex, timestamp=1502127410617, value=f                                                            
+ 103                                  column=e:dno, timestamp=1502127411381, value=12                                                           
+ 103                                  column=e:name, timestamp=1502127411381, value=john                                                        
+ 103                                  column=e:sal, timestamp=1502127411381, value=30000                                                        
+ 103                                  column=e:sex, timestamp=1502127411381, value=m                                                            
+ 104                                  column=e:dno, timestamp=1502127411381, value=13                                                           
+ 104                                  column=e:name, timestamp=1502127411381, value=sonia                                                       
+ 104                                  column=e:sal, timestamp=1502127411381, value=40000                                                        
+ 104                                  column=e:sex, timestamp=1502127411381, value=f                                                            
+ 105                                  column=e:dno, timestamp=1502127413416, value=11                                                           
+ 105                                  column=e:name, timestamp=1502127413416, value=Blake                                                       
+ 105                                  column=e:sal, timestamp=1502127413416, value=50000                                                        
+ 105                                  column=e:sex, timestamp=1502127413416, value=m                                                            
+ 106                                  column=e:dno, timestamp=1502127413416, value=11                                                           
+ 106                                  column=e:name, timestamp=1502127413416, value=Ajay                                                        
+ 106                                  column=e:sal, timestamp=1502127413416, value=60000                                                        
+ 106                                  column=e:sex, timestamp=1502127413416, value=m                                                            
+ 107                                  column=e:dno, timestamp=1502127412747, value=14                                                           
+ 107                                  column=e:name, timestamp=1502127412747, value=Amit                                                        
+ 107                                  column=e:sal, timestamp=1502127412747, value=70000                                                        
+ 107                                  column=e:sex, timestamp=1502127412747, value=m                                                            
+ 108                                  column=e:dno, timestamp=1502127412747, value=15                                                           
+ 108                                  column=e:name, timestamp=1502127412747, value=Amala                                                       
+ 108                                  column=e:sal, timestamp=1502127412747, value=80000                                                        
+ 108                                  column=e:sex, timestamp=1502127412747, value=f                                                            
+ 109                                  column=e:dno, timestamp=1502127412747, value=16                                                           
+ 109                                  column=e:name, timestamp=1502127412747, value=kohli                                                       
+ 109                                  column=e:sal, timestamp=1502127412747, value=90000                                                        
+ 109                                  column=e:sex, timestamp=1502127412747, value=m                                                            
+9 row(s) in 0.4260 seconds
+
+here id will be assigned to row key ,remaining all columns to column family
+--------------------------------------------------------------------------------------------------------------------------------------
+ex:2 
+case 1: importing RDBMS data(customer table) with primary key to hbase table('hcust1')
+
+step 1: create table 'customer' in mysql with primary key
+
+mysql> use sqoopdb1;
+
+mysql> create table customer(cid int primary key,cname varchar(10),accno int,addr varchar,bal int);
+ 
+mysql> insert into customer values(101,'pavan',312567,'Ameerpet',17000);
+
+mysql> insert into customer values(102,'sravan',312464,'Begumpet',29000);
+
+mysql> insert into customer values(103,'sony',312893,'LBNagar',57000);
+
+mysql> insert into customer values(104,'sachin',312793,'mumbai',99000);
+
+mysql> select * from customer;
++------+--------+--------+----------+-------+
+| cid  | cname  | accno  | addr     | bal   |
++------+--------+--------+----------+-------+
+|  101 | pavan  | 312567 | Ameerpet | 17000 |
+|  102 | sravan | 312464 | Begumpet | 29000 |
+|  103 | sony   | 312893 | LBNagar  | 57000 |
+|  104 | sachin | 312793 | mumbai   | 99000 |
++------+--------+--------+----------+-------+
+4 rows in set (0.00 sec)
+
+step 2: create table in hbase ('hcust1')
+
+hbase(main):001:0> create 'hcust1','cf1'
+
+hbase(main):002:0> scan 'hcust1'
+ROW                                   COLUMN+CELL                                                                                               
+0 row(s) in 0.2100 seconds
+
+step 3: sqoop import for importing RDBMS data(customer) to HBase table ('hcust1')
+
+sqoop import \
+--connect jdbc:mysql://localhost/sqoopdb \
+--username root \
+--password hadoop \
+--table customer \
+--hbase-table hcust1 \
+--column-family cf1
+
+step 4: Observing hbase table 'hcust1'
+
+hbase(main):003:0> scan 'hcust1'
+ROW                                   COLUMN+CELL                                                                                               
+ 101                                  column=cf1:accno, timestamp=1502273261429, value=312567                                                   
+ 101                                  column=cf1:addr, timestamp=1502273261429, value=Ameerpet                                                  
+ 101                                  column=cf1:bal, timestamp=1502273261429, value=17000                                                      
+ 101                                  column=cf1:cname, timestamp=1502273261429, value=pavan                                                    
+ 102                                  column=cf1:accno, timestamp=1502273261262, value=312464                                                   
+ 102                                  column=cf1:addr, timestamp=1502273261262, value=Begumpet                                                  
+ 102                                  column=cf1:bal, timestamp=1502273261262, value=29000                                                      
+ 102                                  column=cf1:cname, timestamp=1502273261262, value=sravan                                                   
+ 103                                  column=cf1:accno, timestamp=1502273264393, value=312893                                                   
+ 103                                  column=cf1:addr, timestamp=1502273264393, value=LBNagar                                                   
+ 103                                  column=cf1:bal, timestamp=1502273264393, value=57000                                                      
+ 103                                  column=cf1:cname, timestamp=1502273264393, value=sony                                                     
+ 104                                  column=cf1:accno, timestamp=1502273265035, value=312793                                                   
+ 104                                  column=cf1:addr, timestamp=1502273265035, value=mumbai                                                    
+ 104                                  column=cf1:bal, timestamp=1502273265035, value=99000                                                      
+ 104                                  column=cf1:cname, timestamp=1502273265035, value=sachin                                                   
+4 row(s) in 0.1710 seconds
+
+
+Note: Here in mysql table---->there r 5 columns,the primary key column(cid) is taken as Row key automatically,
+      The remaining 4 columns are taken by column family
+-----------------------------------------------------------------------------------------------------------------------------
+case 2: importing RDBMS data(customer2 table) without primary key to hbase table('hcust2')
+
+step 1: create table 'customer2' in mysql without primary key
+
+mysql> use sqoopdb1;
+
+mysql> create table customer2(cid int,cname varchar(10),accno int,addr varchar,bal int);
+ 
+mysql> insert into customer2 select * from customer;
+
+mysql> select * from customer2;
++------+--------+--------+----------+-------+
+| cid  | cname  | accno  | addr     | bal   |
++------+--------+--------+----------+-------+
+|  101 | pavan  | 312567 | Ameerpet | 17000 |
+|  102 | sravan | 312464 | Begumpet | 29000 |
+|  103 | sony   | 312893 | LBNagar  | 57000 |
+|  104 | sachin | 312793 | mumbai   | 99000 |
++------+--------+--------+----------+-------+
+4 rows in set (0.00 sec)
+
+step 2: create table in hbase ('hcust2')
+
+hbase(main):001:0> create 'hcust2','cf1'
+
+hbase(main):002:0> scan 'hcust2'
+ROW                                   COLUMN+CELL                                                                                               
+0 row(s) in 0.2100 seconds
+
+step 3: sqoop import for importing RDBMS data(customer2) to HBase table ('hcust2')
+
+sqoop import \
+--connect jdbc:mysql://localhost/sqoopdb \
+--username root \
+--password hadoop \
+--table customer2 -m 1 \
+--hbase-table hcust2 \
+--hbase-row-key cid \
+--column-family cf1
+
+Here as there is no primary key, we need to specify which column to be taken as Row key
+
+step 4: Observing hbase table 'hcust2'
+
+hbase(main):003:0> scan 'hcust2'
+ROW                                   COLUMN+CELL                                                                                               
+ 101                                  column=cf1:accno, timestamp=1502273261429, value=312567                                                   
+ 101                                  column=cf1:addr, timestamp=1502273261429, value=Ameerpet                                                  
+ 101                                  column=cf1:bal, timestamp=1502273261429, value=17000                                                      
+ 101                                  column=cf1:cname, timestamp=1502273261429, value=pavan                                                    
+ 102                                  column=cf1:accno, timestamp=1502273261262, value=312464                                                   
+ 102                                  column=cf1:addr, timestamp=1502273261262, value=Begumpet                                                  
+ 102                                  column=cf1:bal, timestamp=1502273261262, value=29000                                                      
+ 102                                  column=cf1:cname, timestamp=1502273261262, value=sravan                                                   
+ 103                                  column=cf1:accno, timestamp=1502273264393, value=312893                                                   
+ 103                                  column=cf1:addr, timestamp=1502273264393, value=LBNagar                                                   
+ 103                                  column=cf1:bal, timestamp=1502273264393, value=57000                                                      
+ 103                                  column=cf1:cname, timestamp=1502273264393, value=sony                                                     
+ 104                                  column=cf1:accno, timestamp=1502273265035, value=312793                                                   
+ 104                                  column=cf1:addr, timestamp=1502273265035, value=mumbai                                                    
+ 104                                  column=cf1:bal, timestamp=1502273265035, value=99000                                                      
+ 104                                  column=cf1:cname, timestamp=1502273265035, value=sachin                                                   
+4 row(s) in 0.1710 seconds
+
+
+
+--------------------------------------------------------------------------------------------------------------------------------
+2)if table does not have primary key.
+
+mysql> create table emp2(id int, name char(10), sal int, sex char(1), dno int);
+
+mysql> insert into emp2 select * from emp;
+
+
+mysql> select * from emp2;
++------+--------+-------+------+------+
+| id   | name   | sal   | sex  | dno  |
++------+--------+-------+------+------+
+|  101 | miller | 10000 | m    |   11 |
+|  102 | jyothi | 20000 | f    |   12 |
+|  103 | john   | 30000 | m    |   12 |
+|  104 | sonia  | 40000 | f    |   13 |
+|  105 | Blake  | 50000 | m    |   11 |
+|  106 | Ajay   | 60000 | m    |   11 |
++------+--------+-------+------+------+
+
+hbase(main):004:0> create 'hemp2','e'
+0 row(s) in 2.4160 seconds
+
+[training@localhost ~]$ sqoop import  --connect jdbc:mysql://localhost/sqoopdb  --username root  --password hadoop --table emp2 -m 1  --hbase-table hemp2 --hbase-row-key id   --column-family e 
+
+here we need to specify which column to be assigned as row key
+
+hbase(main):005:0> scan 'hemp2'
+ROW                                   COLUMN+CELL                                                                                               
+ 101                                  column=e:dno, timestamp=1502129022218, value=11                                                           
+ 101                                  column=e:name, timestamp=1502129022218, value=miller                                                      
+ 101                                  column=e:sal, timestamp=1502129022218, value=10000                                                        
+ 101                                  column=e:sex, timestamp=1502129022218, value=m                                                            
+ 102                                  column=e:dno, timestamp=1502129022218, value=12                                                           
+ 102                                  column=e:name, timestamp=1502129022218, value=jyothi                                                      
+ 102                                  column=e:sal, timestamp=1502129022218, value=20000                                                        
+ 102                                  column=e:sex, timestamp=1502129022218, value=f                                                            
+ 103                                  column=e:dno, timestamp=1502129022218, value=12                                                           
+ 103                                  column=e:name, timestamp=1502129022218, value=john                                                        
+ 103                                  column=e:sal, timestamp=1502129022218, value=30000                                                        
+ 103                                  column=e:sex, timestamp=1502129022218, value=m                                                            
+ 104                                  column=e:dno, timestamp=1502129022218, value=13                                                           
+ 104                                  column=e:name, timestamp=1502129022218, value=sonia                                                       
+ 104                                  column=e:sal, timestamp=1502129022218, value=40000                                                        
+ 104                                  column=e:sex, timestamp=1502129022218, value=f                                                            
+ 105                                  column=e:dno, timestamp=1502129022218, value=11                                                           
+ 105                                  column=e:name, timestamp=1502129022218, value=Blake                                                       
+ 105                                  column=e:sal, timestamp=1502129022218, value=50000                                                        
+ 105                                  column=e:sex, timestamp=1502129022218, value=m                                                            
+ 106                                  column=e:dno, timestamp=1502129022218, value=11                                                           
+ 106                                  column=e:name, timestamp=1502129022218, value=Ajay                                                        
+ 106                                  column=e:sal, timestamp=1502129022218, value=60000                                                        
+ 106                                  column=e:sex, timestamp=1502129022218, value=m                                                            
+6 row(s) in 0.1240 seconds
+ 
+
+------------------------------------------------------------------------------------------------------------------------------------------
+3) joins:
+
+joining emp and dept table in mysql itself and its result importing to hbase with 2 column famiilies e and f 
+mysql> select * from emp;
++-----+--------+-------+------+------+
+| id  | name   | sal   | sex  | dno  |
++-----+--------+-------+------+------+
+| 101 | miller | 10000 | m    |   11 |
+| 102 | jyothi | 20000 | f    |   12 |
+| 103 | john   | 30000 | m    |   12 |
+| 104 | sonia  | 40000 | f    |   13 |
+| 105 | Blake  | 50000 | m    |   11 |
+| 106 | Ajay   | 60000 | m    |   11 |
+| 107 | Amit   | 70000 | m    |   14 |
+| 108 | Amala  | 80000 | f    |   15 |
+| 109 | kohli  | 90000 | m    |   16 |
++-----+--------+-------+------+------+
+9 rows in set (0.07 sec)
+
+
+mysql> create table dept(dno int primary key,dname char(10),loc char(10));
+
+
+mysql> insert into dept values(11,'mrkt','hyd');
+
+
+mysql> insert into dept values(12,'finance','hyd');
+
+
+mysql> insert into dept values(13,'HR','pune');
+
+
+mysql> insert into dept values(17,'mrkt','pune');
+
+mysql> insert into dept values(18,'finance','hyd');
+
+mysql> insert into dept values(19,'HR','hyd');
+
+
+mysql> select * from dept;
++-----+---------+------+
+| dno | dname   | loc  |
++-----+---------+------+
+|  11 | mrkt    | hyd  |
+|  12 | finance | hyd  |
+|  13 | HR      | pune |
+|  17 | mrkt    | pune |
+|  18 | finance | hyd  |
+|  19 | HR      | hyd  |
++-----+---------+------+
+
+mysql> create table empdept(id int primary key,name char(10),sal int,sex char(1),dno int,dname char(10),loc char(10));
+
+
+mysql> insert into empdept
+     select id,name, sal, sex,e.dno,dname,loc from emp e join dept d on (e.dno=d.dno);
+
+mysql> select * from empdept;
++-----+--------+-------+------+------+---------+------+
+| id  | name   | sal   | sex  | dno  | dname   | loc  |
++-----+--------+-------+------+------+---------+------+
+| 101 | miller | 10000 | m    |   11 | mrkt    | hyd  |
+| 102 | jyothi | 20000 | f    |   12 | finance | hyd  |
+| 103 | john   | 30000 | m    |   12 | finance | hyd  |
+| 104 | sonia  | 40000 | f    |   13 | HR      | pune |
+| 105 | Blake  | 50000 | m    |   11 | mrkt    | hyd  |
+| 106 | Ajay   | 60000 | m    |   11 | mrkt    | hyd  |
++-----+--------+-------+------+------+---------+------+
+
+hbase(main):006:0> create 'hempdept1','e','d'
+
+case 1: importing column family e data into hbase table hempdept1
+
+[training@localhost ~]$ sqoop import  --connect jdbc:mysql://localhost/sqoopdb  --username root  --password hadoop --table empdept  --columns id, name,sal,sex,dno --hbase-table hempdept1   --column-family e  
+
+hbase(main):008:0> scan 'hempdept1'
+ROW                                   COLUMN+CELL                                                                                               
+ 101                                  column=e:dno, timestamp=1502131334133, value=11                                                           
+ 101                                  column=e:name, timestamp=1502131334133, value=miller                                                      
+ 101                                  column=e:sal, timestamp=1502131334133, value=10000                                                        
+ 101                                  column=e:sex, timestamp=1502131334133, value=m                                                            
+ 102                                  column=e:dno, timestamp=1502131334133, value=12                                                           
+ 102                                  column=e:name, timestamp=1502131334133, value=jyothi                                                      
+ 102                                  column=e:sal, timestamp=1502131334133, value=20000                                                        
+ 102                                  column=e:sex, timestamp=1502131334133, value=f                                                            
+ 103                                  column=e:dno, timestamp=1502131334683, value=12                                                           
+ 103                                  column=e:name, timestamp=1502131334683, value=john                                                        
+ 103                                  column=e:sal, timestamp=1502131334683, value=30000                                                        
+ 103                                  column=e:sex, timestamp=1502131334683, value=m                                                            
+ 104                                  column=e:dno, timestamp=1502131337034, value=13                                                           
+ 104                                  column=e:name, timestamp=1502131337034, value=sonia                                                       
+ 104                                  column=e:sal, timestamp=1502131337034, value=40000                                                        
+ 104                                  column=e:sex, timestamp=1502131337034, value=f                                                            
+ 105                                  column=e:dno, timestamp=1502131337526, value=11                                                           
+ 105                                  column=e:name, timestamp=1502131337526, value=Blake                                                       
+ 105                                  column=e:sal, timestamp=1502131337526, value=50000                                                        
+ 105                                  column=e:sex, timestamp=1502131337526, value=m                                                            
+ 106                                  column=e:dno, timestamp=1502131337526, value=11                                                           
+ 106                                  column=e:name, timestamp=1502131337526, value=Ajay                                                        
+ 106                                  column=e:sal, timestamp=1502131337526, value=60000                                                        
+ 106                                  column=e:sex, timestamp=1502131337526, value=m                                                            
+6 row(s) in 0.0820 seconds
+
+
+case 2: importing column family d data into same table hempdept1
+
+[training@localhost ~]$ sqoop import  --connect jdbc:mysql://localhost/sqoopdb  --username root  --password hadoop --table empdept  --columns id,dno,dname,loc  --hbase-table hempdept1   --column-family d  
+
+hbase(main):009:0> scan 'hempdept1'
+ROW                                   COLUMN+CELL                                                                                               
+ 101                                  column=d:dname, timestamp=1502131767337, value=mrkt                                                       
+ 101                                  column=d:dno, timestamp=1502131767337, value=11                                                           
+ 101                                  column=d:loc, timestamp=1502131767337, value=hyd                                                          
+ 101                                  column=e:dno, timestamp=1502131334133, value=11                                                           
+ 101                                  column=e:name, timestamp=1502131334133, value=miller                                                      
+ 101                                  column=e:sal, timestamp=1502131334133, value=10000                                                        
+ 101                                  column=e:sex, timestamp=1502131334133, value=m                                                            
+ 102                                  column=d:dname, timestamp=1502131767337, value=finance                                                    
+ 102                                  column=d:dno, timestamp=1502131767337, value=12                                                           
+ 102                                  column=d:loc, timestamp=1502131767337, value=hyd                                                          
+ 102                                  column=e:dno, timestamp=1502131334133, value=12                                                           
+ 102                                  column=e:name, timestamp=1502131334133, value=jyothi                                                      
+ 102                                  column=e:sal, timestamp=1502131334133, value=20000                                                        
+ 102                                  column=e:sex, timestamp=1502131334133, value=f                                                            
+ 103                                  column=d:dname, timestamp=1502131768540, value=finance                                                    
+ 103                                  column=d:dno, timestamp=1502131768540, value=12                                                           
+ 103                                  column=d:loc, timestamp=1502131768540, value=hyd                                                          
+ 103                                  column=e:dno, timestamp=1502131334683, value=12                                                           
+ 103                                  column=e:name, timestamp=1502131334683, value=john                                                        
+ 103                                  column=e:sal, timestamp=1502131334683, value=30000                                                        
+ 103                                  column=e:sex, timestamp=1502131334683, value=m                                                            
+ 104                                  column=d:dname, timestamp=1502131769876, value=HR                                                         
+ 104                                  column=d:dno, timestamp=1502131769876, value=13                                                           
+ 104                                  column=d:loc, timestamp=1502131769876, value=pune                                                         
+ 104                                  column=e:dno, timestamp=1502131337034, value=13                                                           
+ 104                                  column=e:name, timestamp=1502131337034, value=sonia                                                       
+ 104                                  column=e:sal, timestamp=1502131337034, value=40000                                                        
+ 104                                  column=e:sex, timestamp=1502131337034, value=f                                                            
+ 105                                  column=d:dname, timestamp=1502131771221, value=mrkt                                                       
+ 105                                  column=d:dno, timestamp=1502131771221, value=11                                                           
+ 105                                  column=d:loc, timestamp=1502131771221, value=hyd                                                          
+ 105                                  column=e:dno, timestamp=1502131337526, value=11                                                           
+ 105                                  column=e:name, timestamp=1502131337526, value=Blake                                                       
+ 105                                  column=e:sal, timestamp=1502131337526, value=50000                                                        
+ 105                                  column=e:sex, timestamp=1502131337526, value=m                                                            
+ 106                                  column=d:dname, timestamp=1502131771221, value=mrkt                                                       
+ 106                                  column=d:dno, timestamp=1502131771221, value=11                                                           
+ 106                                  column=d:loc, timestamp=1502131771221, value=hyd                                                          
+ 106                                  column=e:dno, timestamp=1502131337526, value=11                                                           
+ 106                                  column=e:name, timestamp=1502131337526, value=Ajay                                                        
+ 106                                  column=e:sal, timestamp=1502131337526, value=60000                                                        
+ 106                                  column=e:sex, timestamp=1502131337526, value=m                                                            
+6 row(s) in 0.1290 seconds
+
+______________________________
+

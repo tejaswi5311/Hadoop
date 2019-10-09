@@ -1,0 +1,181 @@
+massive updations of HBASE table:
+
+put---->used for insertion and updation in hbase
+but using put,we can update only one record,but we cannot update multiple or bulk records in hbase
+so to overcome that, we perform massive updation in hive as shown below
+
+hive> select * from hbasehivestd;
+OK
+501	miller	87
+502	John	68
+
+
+hive> insert overwrite table hbasehivestd
+    > select rollno,name,marks+10 from hbasehivestd;
+
+here the marks are updated for each and every record with 10 in hive table,
+the same is also updated in hbase table, so in this way we can perform bulk updations
+
+here both the source and destination tables are same,so overwriting happens.
+
+Note: here hive table backend is hbase but not hdfs, so overwriting happened
+ 
+hive> select * from hbasehivestd;
+OK
+501	miller	97
+502	John	78
+
+observe the updation in hbase also
+
+scan 'hbasehivestd'
+ROW                                   COLUMN+CELL                                                                                               
+ 501                                  column=s:marks, timestamp=1503386536523, value=97                                                         
+ 501                                  column=s:name, timestamp=1503386536523, value=miller                                                      
+ 502                                  column=s:marks, timestamp=1503386536523, value=78                                                         
+ 502                                  column=s:name, timestamp=1503386536523, value=John  
+
+
+so in hbase we can update only one record,but by using hive we can perform bulk updations 
+ex2: incrementing sal by 10%
+    ex: insert overwrite table hbasehiveemp 
+        select id,name,sal+(sal*10/100),sex,dno from hbasehiveemp
+
+---------------------------------------------------------------------------------------------------------
+massive updations in hbase
+
+ex2:
+
+
+step 1: Hive and hbase integration
+
+hive> create table hbasehiveemp1(id int,name string,sal int,sex string,dno int)
+    > stored by 'org.apache.hadoop.hive.hbase.HBaseStorageHandler'
+    > with serdeproperties("hbase.columns.mapping"=":key,e:name,e:sal,e:sex,e:dno");
+  
+hive> select * from hbasehiveemp1;
+OK
+Time taken: 0.54 seconds
+
+
+step 2: insert data in hbase
+
+hbase(main):005:0> put 'hbasehiveemp1',101,'e:name','miller'
+0 row(s) in 0.1660 seconds
+
+hbase(main):006:0> put 'hbasehiveemp1',101,'e:sal',5000
+0 row(s) in 0.0130 seconds
+
+hbase(main):007:0> put 'hbasehiveemp1',101,'e:sex','m'
+0 row(s) in 0.0130 seconds
+
+hbase(main):008:0> put 'hbasehiveemp1',101,'e:dno',11
+0 row(s) in 0.0110 seconds
+
+hbase(main):009:0> put 'hbasehiveemp1',102,'e:name','Blake'
+0 row(s) in 0.0100 seconds
+
+hbase(main):010:0> put 'hbasehiveemp1',102,'e:sal',15000
+0 row(s) in 0.0130 seconds
+
+hbase(main):011:0> put 'hbasehiveemp1',102,'e:sex','m'
+0 row(s) in 0.0130 seconds
+
+hbase(main):012:0> put 'hbasehiveemp1',102,'e:dno',12
+0 row(s) in 0.0150 seconds
+
+hbase(main):013:0> put 'hbasehiveemp1',103,'e:name','sony'
+0 row(s) in 0.0130 seconds
+
+hbase(main):014:0> put 'hbasehiveemp1',103,'e:sal',25000
+0 row(s) in 0.0150 seconds
+
+hbase(main):015:0> put 'hbasehiveemp1',103,'e:sex','f'
+0 row(s) in 0.0140 seconds
+
+hbase(main):016:0> put 'hbasehiveemp1',103,'e:dno',13
+0 row(s) in 0.0130 seconds
+
+
+hbase(main):017:0> scan 'hbasehiveemp1'
+ROW                         COLUMN+CELL                                                                   
+ 101                        column=e:dno, timestamp=1503395918054, value=11                               
+ 101                        column=e:name, timestamp=1503395883551, value=miller                          
+ 101                        column=e:sal, timestamp=1503395897358, value=5000                             
+ 101                        column=e:sex, timestamp=1503395908814, value=m                                
+ 102                        column=e:dno, timestamp=1503395987704, value=12                               
+ 102                        column=e:name, timestamp=1503395948725, value=Blake                           
+ 102                        column=e:sal, timestamp=1503395960906, value=15000                            
+ 102                        column=e:sex, timestamp=1503395971268, value=m                                
+ 103                        column=e:dno, timestamp=1503396038538, value=13                               
+ 103                        column=e:name, timestamp=1503396003840, value=sony                            
+ 103                        column=e:sal, timestamp=1503396013993, value=25000                            
+ 103                        column=e:sex, timestamp=1503396025407, value=f                                
+3 row(s) in 0.0620 seconds
+
+observe in hive also
+
+hive> select * from hbasehiveemp1;
+OK
+101	miller	5000	m	11
+102	Blake	15000	m	12
+103	sony	25000	f	13
+
+In hbase using put,we can update only one record, we cant update multiple records
+so to update bulk record we perform the following:
+
+hive> insert overwrite table hbasehiveemp1
+    > select id,name,sal+(sal*10/100),sex,dno from hbasehiveemp1;
+
+hive> select * from hbasehiveemp1;
+OK
+101	miller	5500	m	11
+102	Blake	16500	m	12
+103	sony	27500	f	13
+
+
+observe in hbase also, they get updated
+
+hbase(main):020:0> scan 'hbasehiveemp1'
+ROW                         COLUMN+CELL                                                                   
+ 101                        column=e:dno, timestamp=1503396529044, value=11                               
+ 101                        column=e:name, timestamp=1503396529044, value=miller                          
+ 101                        column=e:sal, timestamp=1503396529044, value=5500                             
+ 101                        column=e:sex, timestamp=1503396529044, value=m                                
+ 102                        column=e:dno, timestamp=1503396529044, value=12                               
+ 102                        column=e:name, timestamp=1503396529044, value=Blake                           
+ 102                        column=e:sal, timestamp=1503396529044, value=16500                            
+ 102                        column=e:sex, timestamp=1503396529044, value=m                                
+ 103                        column=e:dno, timestamp=1503396529044, value=13                               
+ 103                        column=e:name, timestamp=1503396529044, value=sony                            
+ 103                        column=e:sal, timestamp=1503396529044, value=27500                            
+ 103                        column=e:sex, timestamp=1503396529044, value=f                                
+3 row(s) in 0.0520 seconds
+
+
+
+
+-----------------------------------------------------------------------------------------
+Task:
+
+mysql------>sqoop------>Hbase----->Hive------->LFS/HDFS----->Flume------>HDFs---->Pig----->HDFS
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

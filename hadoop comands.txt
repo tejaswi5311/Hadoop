@@ -1,0 +1,282 @@
+HDFS Commands :
+
+command for starting storage components(daemons)----->start-dfs.sh
+
+command for starting Processing components(daemons)----->start-yarn.sh
+
+every HDFS command follows the following syntax:
+
+hadoop fs -commandname 
+
+ex:
+1)hadoop fs -ls /     ------>displays all files and directories present in HDFS
+
+2)hadoop fs -mkdir /hadooplab1-------> for creating a directory in HDFS
+
+3)we cannot create files in HDFS, bcoz modification or changes are not allowed in HDFS
+  Here we doesnt have any file editors like vi,nano etc
+  here we always bring data from LFS
+
+4)put or (copyFromLocal)------->Bringing data from LFS-------->HDFS
+
+  syntax:  hadoop fs -put LFSsourcepath HDFSdestinationpath 
+                        or
+          hadoop fs -copyFromLocal LFSsourcepath HDFSdestinationpath
+
+here using put command we can perform the following operations
+1)copying a LFS file into HDFS directory
+
+$ hadoop fs -put sample5.txt /hadooplab17
+lenovo@lenovo-Lenovo-G450:~$ hadoop fs -ls /hadooplab17
+Found 1 items
+-rw-r--r--   1 lenovo supergroup         52 2018-06-07 10:11 /hadooplab17/sample5.txt
+lenovo@lenovo-Lenovo-G450:~$ hadoop fs -cat /hadooplab17/sample5.txt
+Hadoop is Great
+Hadoop is simple
+Hadoop is Booming
+
+2)copies multiple LFS files into HDFS directory
+$ hadoop fs -put *.java /hadooplab17    ---------->copies all java files from LFS to HDFS directory
+lenovo@lenovo-Lenovo-G450:~$ hadoop fs -ls /hadooplab17
+
+3)copies a LFSfile into HDFS
+  $ hadoop fs -put customer.txt /
+
+4)copies a LFSfile into HDFSfile
+ hadoop fs -put customer.txt /customer1.txt
+ here customer1.txt created automatically and data copied into it
+
+5)copies a LFS directory into HDFS
+  $ hadoop fs -put hadooplab7 /
+
+6)copies a LFS directory into HDFS directory
+ $ hadoop fs -put hadooplab7 /hadooplab17
+
+---------------------------------------------------------------------------------------------------------------
+5) get (or) copyToLocal  : copying data from HDFS to LFS
+
+syntax: hadoop fs -get HDFSsourcepath LFSdestinationpath
+                    or
+       hadoop fs -copyToLocal HDFSsourcepath LFSdestinationpath
+
+get command performs the following
+1)copies a HDFS file into LFSdirectory
+
+$ hadoop fs -get /hadooplab17/sample5.txt hadoopLFSlab1
+lenovo@lenovo-Lenovo-G450:~$ ls hadoopLFSlab1
+demo1.txt  hadooplab14  sample5.txt  sample9.txt  test.txt
+
+2)copies multiple HDFSfiles into LFSdirectory
+$ hadoop fs -get /hadooplab17/*.java hadoopLFSlab1
+lenovo@lenovo-Lenovo-G450:~$ ls hadoopLFSlab1
+
+3)copies a HDFSfile into LFsfile
+
+ $ hadoop fs -get /hadooplab17/sample5.txt hadoopLFSlab1/sample52.txt
+
+4)copies a HDFSdirectory into LFS directory
+$ hadoop fs -get /hadooplab17 hadoopLFSlab1
+
+---------------------------------------------------------------------------------------------------------
+6)
+cp:copy command
+cp command follows ctrl+c(copy)------>ctrl+v(paste)
+syntax: hadoop fs -cp HDFSsourcepath HDFSdestinationpath
+cp command works for copying from LFS-------->LFS
+                               or HDFS------->HDFS
+                      but not fromLFS------>HDFS or vice-versa
+
+cp command used for 
+1)copying a HDFSfile into HDFSdirectory
+$ hadoop fs -cp /demo5.txt /hadooplab17
+2)copying multiple HDFSfiles into HDFSdirectory
+
+---------------------------------------------------------------------------------------------------------
+7)
+mv:move command
+
+mv command follows ctrl+x(cut)------>ctrl+v(paste)
+means wont be available in source but available in destination
+syntax: hadoop fs -mv HDFSsourcepath HDFSdestinationpath
+mv command works for copying from LFS-------->LFS
+                               or HDFS------->HDFS
+                      but not fromLFS------>HDFS or vice-versa
+
+Note : mv command indirectly can be used for renaming a file
+
+hadoop fs -mv /hadooplab17/demo5.txt /hadooplab16
+
+Renaming a file using mv:
+renaming demo5.txt to day5.txt
+$ hadoop fs -mv /hadooplab16/demo5.txt /hadooplab16/day5.txt
+
+--------------------------------------------------------------------------------------------------
+8)rm :removing a HDFSfile
+
+$ hadoop fs -rm /hadooplab16/day5.txt
+
+----------------------------------------------------------------------------------------------------
+9)rm -r:removing directory
+
+$ hadoop fs -rm -r /hadooplab17
+
+----------------------------------------------------------------------------------------------------
+10)touchz : for creating empty file
+$ hadoop fs -touchz /hadooplab16/demo7.txt
+
+from LFS if u bring a file(sample5.txt) using put command and load into this empty file(demo7.txt)----->wont be loaded
+
+$ hadoop fs -put sample5.txt /hadooplab16/demo7.txt
+put: `/hadooplab16/demo7.txt': File exists
+
+using cp also u cant load from hdfsfile to hdfsfile
+
+$ hadoop fs -cp /customer.txt /hadooplab16/demo7.txt
+cp: `/hadooplab16/demo7.txt': File exists
+
+---------------------------------------------------------------------------------------------------
+11)appendToFile : appending data to a existing HDFS file from LFS
+syntax: hadoop fs -appendToFile LFSsourcefile HDFSdestinationfile
+
+lenovo@lenovo-Lenovo-G450:~$ hadoop fs -appendToFile customer.txt /hadooplab16/demo7.txt
+lenovo@lenovo-Lenovo-G450:~$ hadoop fs -appendToFile sales2 /hadooplab16/demo7.txt
+
+here demo7.txt was a empty file, into that customer and sales data was copied from LFS
+
+--------------------------------------------------------------------------------------------------
+12)du : disk usage
+returns the size oocupied by each file
+$ hadoop fs -du /hadooplab16
+66   /hadooplab16/comment7
+400  /hadooplab16/demo7.txt
+55   /hadooplab16/res1
+55   /hadooplab16/res2
+91   /hadooplab16/res3
+91   /hadooplab16/res4
+55   /hadooplab16/res5
+
+---------------------------------------------------------------------------------------------------
+13)count : It returns the no of directories, files and size occupied by all the files
+$ hadoop fs -count /hadooplab15
+---------------------------------------------------------------------------------------------------
+compressing data:
+gzip : compressing a file
+
+ll sales.txt
+
+o/p: 
+148 characters size
+gzip sales.txt
+
+o/p: 107 characters
+sales.txt will be compressed as sales.gz
+
+If i want to read the compressed file(sales.gz), the data appears in binary format
+
+Now loading this compressed file into hdfs using put command 
+
+lenovo@lenovo-Lenovo-G450:~$ hadoop fs -put sales.gz /hadooplab19
+lenovo@lenovo-Lenovo-G450:~$ hadoop fs -ls /hadooplab19
+Found 1 items
+-rw-r--r--   1 lenovo supergroup        102 2018-06-11 09:31 /hadooplab19/sales.gz
+lenovo@lenovo-Lenovo-G450:~$ hadoop fs -cat /hadooplab19/sales.gz
+?fKYsales=??	?0
+                  @?{?m?$8N?C?"x??Jc<~?kcÒ2??
+                                              ????a
+                                                    ?j_???	?{???^?'
+/?)????uz????????lenovo@lenovo-Lenovo-G450:~$ 
+
+
+---------------------------------------------------------------------------
+15) gunzip : for uncompressing a file
+
+$ gunzip sales.txt.gz
+
+~$ cat sales.txt
+hyd 2015 apr 35
+pun 2015 may -25
+ban 2015 jun 40
+hyd 2016 apr 45
+pun 2016 may -33
+ban 2016 jun -43
+hyd 2017 apr 44
+pun 2017 may -51
+ban 2017 jun 49
+
+but in HDFS, we doesnt have any command to uncompress the file
+but we can read the file in text format using a command -text
+
+$ hadoop fs -cat /hadooplab19/sales.gz
+?fKYsales=??	?0
+                  @?{?m?$8N?C?"x??Jc<~?kcÒ2??
+                                              ????a
+                                                    ?j_???	?{???^?'
+/?)????uz????????lenovo@lenovo-Lenovo-G450:~$ hadoop fs -text /hadooplab19/sales.gz
+hyd 2015 apr 35
+pun 2015 may 25
+ban 2015 jun 40
+hyd 2016 apr 45
+pun 2016 may 33
+ban 2016 jun 43
+-------------------------------------------------------------------------------------
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

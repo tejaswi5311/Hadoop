@@ -1,0 +1,187 @@
+
+Hive and Hbase Integration:
+-----------------------------------------------------------------------------------------------------------------
+-Hbase performs OLTP  operations
+
+-Hbase cant perform Batch operations.
+
+-To perform OLTP and batch operations, Hbase to be integrated with hive,
+ so that it can perform both operations(OLTP+Batch)
+
+-in Hive and hbase integration, hive table backend will will be hbase instead of hdfs.
+
+Advantage:
+i)  we can process Hbase data using hql queries.
+ii) Hbase shell commands  are used for random operations over columns.
+  but not for sequential filters, transformations,  aggregations  etc.
+iii)if Hbase table is integrated with Hive,Impala , we can perform all batch related operations.
+
+   generally, for Hive table,the backend storage is hdfs, if hive table is integrated with hbase,
+ Hive's tables backend is Hbase table.
+
+ when you submit hql statement, hive starts fetching data from Hbase table, 
+query will be executed in MapReduce Excecution model with parallel process style.
+
+here both hive and hbase are integrated, 
+when you create hive table,a table is also created automatically in hbase also with same table name..
+if u insert data in hbase table, u can see the same in hive also....
+as per above example, both hive and hbase table names are same....
+----------------------------------------------------------------------------------------------------------------
+ex:1
+
+hive>create table hbasehivetab1(id int,name string,sal int) 
+    stored by 'org.apache.hadoop.hive.hbase.HBaseStorageHandler'
+    with serdeproperties("hbase.columns.mapping"=":key,x:name,x:sal");   
+
+hive> select * from hbasehivetab1;
+OK
+Time taken: 0.307 seconds
+
+goto hbase and ckeck------->table hbasehivetab1 exists
+
+hbase(main):001:0> list
+TABLE                                                                                                                                           
+hbaseimg2                                                                                                                                       
+hbaseimg5
+hbasehivetab1                                                                                                                                       
+hcust                                                                                                                                           
+hcust2                                                                                                                                          
+hcust5                                                                                                                                          
+hempdept                                                                                                                                        
+hempdept1                                                                                                                                       
+hempdept2                                                                                                                                       
+hempdept3 
+
+
+
+// inserting data in hbase table
+
+hbase(main):003:0> put 'hbasehivetab1',101,'x:name','vijay'
+0 row(s) in 0.3460 seconds
+
+hbase(main):004:0> put 'hbasehivetab1',101,'x:sal',10000
+0 row(s) in 0.0190 seconds
+
+hbase(main):005:0> scan 'hbasehivetab1'
+ROW                                   COLUMN+CELL                                                                                               
+ 101                                  column=x:name, timestamp=1502763074301, value=vijay                                                       
+ 101                                  column=x:sal, timestamp=1502763099893, value=10000                                                        
+1 row(s) in 0.0180 seconds
+
+
+
+// reteiving the same data in hive table
+
+hive> select * from hbasehivetab1;
+OK
+101	vijay	10000
+Time taken: 0.394 seconds, Fetched: 1 row(s)
+
+
+as per above example, both hive and hbase table names are same.
+
+but if you want different table names i.e 
+-----------------------------------------------------------------------------------------------------------
+2) if you want to integrate hive table with  different hbase table name, then
+
+ex2:
+hive> create table hbasehivetab2(cid int, cname string,bal int)
+      stored by 'org.apache.hadoop.hive.hbase.HBaseStorageHandler'
+      with serdeproperties("hbase.columns.mapping"=":key,x:cname,x:bal")
+      tblproperties("hbase.table.name"="hbasetab1");
+
+hbase(main):001:0> list
+TABLE                                                                                                                                           
+hbaseimg13                                                                                                                                      
+hbaseimg2                                                                                                                                       
+hbaseimg5                                                                                                                                       
+hbaseimg8                                                                                                                                       
+hbaseimg9 
+hbasetab1                                                                                                                                      
+hbasetab22                                                                                                                                      
+hcust                                                                                                                                           
+hcust2     
+
+hbase(main):002:0> put 'hbasetab1',101,'x:cname','miller'
+0 row(s) in 0.4030 seconds
+
+hbase(main):003:0> put 'hbasetab1',101,'x:bal',30000
+0 row(s) in 0.0200 seconds
+
+hbase(main):004:0> scan 'hbasetab1'
+ROW                                   COLUMN+CELL                                                                                               
+ 101                                  column=x:bal, timestamp=1502860797316, value=30000                                                        
+ 101                                  column=x:cname, timestamp=1502860778222, value=miller                                                     
+1 row(s) in 0.0630 seconds
+
+hive> select * from hbasehivetab2;
+OK
+101	miller	30000
+Time taken: 3.143 seconds, Fetched: 1 row(s)
+
+----------------------------------------------------------------------------------------------------------------------------
+3) with 2 col families
+hive> create table hbasehivetab3(id int,name string,sal int,sex string,dno int,dname string,loc string)
+ stored by 'org.apache.hadoop.hive.hbase.HBaseStorageHandler'
+with serdeproperties("hbase.columns.mapping"=":key,e:name,e:sal,e:sex,e:dno,d:dname,d:loc")
+tblproperties("hbase.table.name"="hbasetab3");
+
+hive> select * from hbasehivetab3;
+OK
+Time taken: 0.524 seconds
+
+hbase(main):005:0> list 
+TABLE                                                                                                                                           
+hbaseimg13                                                                                                                                      
+hbaseimg2                                                                                                                                       
+hbaseimg5                                                                                                                                       
+hbaseimg8                                                                                                                                       
+hbaseimg9                                                                                                                                       
+hbasetab22
+hbasetab2                                                                                                                                      
+hbasetab3                                                                                                                                      
+hcust                                                                                                                                           
+hcust2       
+
+hbase(main):006:0> put 'hbasetab3',101,'e:name',Blake
+NameError: uninitialized constant Blake
+
+hbase(main):007:0> put 'hbasetab3',101,'e:name','Blake'
+0 row(s) in 0.0240 seconds
+
+hbase(main):008:0> put 'hbasetab3',101,'e:sal',10000
+0 row(s) in 0.0130 seconds
+
+hbase(main):009:0> put 'hbasetab3',101,'e:sex','m'
+0 row(s) in 0.0130 seconds
+
+hbase(main):010:0> put 'hbasetab3',101,'e:dno',11
+0 row(s) in 0.0150 seconds
+
+hbase(main):011:0> put 'hbasetab3',101,'d:dname','mrkt'
+0 row(s) in 0.0190 seconds
+
+hbase(main):012:0> put 'hbasetab3',101,'d:loc','hyd'
+0 row(s) in 0.0080 seconds
+
+hbase(main):013:0> scan 'hbasetab3'
+ROW                                   COLUMN+CELL                                                                                               
+ 101                                  column=d:dname, timestamp=1502861850088, value=mrkt                                                       
+ 101                                  column=d:loc, timestamp=1502861862104, value=hyd                                                          
+ 101                                  column=e:dno, timestamp=1502861835561, value=11                                                           
+ 101                                  column=e:name, timestamp=1502861799967, value=Blake                                                       
+ 101                                  column=e:sal, timestamp=1502861812553, value=10000                                                        
+ 101                                  column=e:sex, timestamp=1502861823141, value=m                                                            
+1 row(s) in 0.0370 seconds
+
+hive> select * from hbasehivetab3;
+OK
+101	Blake	10000	m	11	mrkt	hyd
+Time taken: 0.765 seconds, Fetched: 1 row(s)
+
+--------------------------------------------------------------------------------------------------------------------------
+
+
+
+
+

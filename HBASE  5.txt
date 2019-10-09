@@ -1,0 +1,262 @@
+
+
+1) 
+
+case 1 : HBase--------> LFS
+
+(moving data from HBase table---------->to LFS directory)
+-we can't move data directly from HBase to LFS, in middle we need to have HIVE for it
+-HBase----->Hive------->LFS
+
+
+step 1: Hive and hbase integration(creating table in hive and hbase with same name)
+
+hive> create table hbasehivetab6(cid int, cname string,bal int)
+           stored by 'org.apache.hadoop.hive.hbase.HBaseStorageHandler'
+           with serdeproperties("hbase.columns.mapping"=":key,x:cname,x:bal");
+
+hive> select * from hbasehivetab6;
+OK
+Time taken: 3.17 seconds
+
+step 2: inserting data in hbase table
+
+hbase(main):002:0> list
+TABLE                                                                                                                                           
+hbase35                                                                                                                                         
+hbase36                                                                                                                                         
+hbase37                                                                                                                                         
+hbase38                                                                                                                                         
+hbase39                                                                                                                                         
+hbasehivetab6 
+
+hbase(main):008:0> put 'hbasehivetab6',101,'x:bal',12000
+0 row(s) in 0.1650 seconds
+
+hbase(main):009:0> put 'hbasehivetab6',101,'x:cname','miller'
+0 row(s) in 0.0170 seconds
+
+step 3: In Hive copying table data into LFS
+
+hive> insert overwrite local directory 'mylocal1'
+    > select * from hbasehivetab69;
+
+here  'mylocal1' directory wil be created automaticaly and we get a file 000000_0, whenever we perform
+insert overwrite and into this file, the data is copied.
+
+step 4: observing in LFs
+
+$ ls mylocal1
+000000_0
+
+$ cat mylocal1/000000_0
+101miller12000
+
+to remove diamond delimiter,
+create one more hive table with schema and with delimiter and perfom hive----->to LFs copy
+-------------------------------------------------------------------------------------------------------------------------------------
+2)
+
+case2 : HBase-------->HDFS
+(moving data from HBase table---------->to HDFS directory)
+-we can't move data directly from HBase to HDFS, in middle we need to have HIVE for it
+-HBase----->Hive------->HDFS
+
+Here sqoop wont work
+ hive> insert overwrite directory '/myhdfs1'
+    > select * from hbasehivetab6;
+
+Note: here '/myhdfs1' directory is created automatically in hdfs and  in that we can see 000000_0 file and into that
+the data is copied.
+ 
+Lenovo-G450:~$ hadoop fs -ls /myhdfs1
+Found 1 items
+-rwxr-xr-x   1 lenovo supergroup         17 2017-08-21 13:21 /myhdfs1/000000_0
+
+Lenovo-G450:~$hadoop fs -cat /myhdfs1/000000_0
+101miller12000
+
+---------------------------------------------------------------------------------------------------------------------------------------
+3)
+
+case 3: HBase-------->Hive 
+1) HBase--------->Hive
+ 
+---------------------------------------------------------------------------------------------------------------------------------------
+4)  
+
+case 4: HBase----------->RDBMS
+
+(moving data from HBase table---------->to MySQL table)
+-we can't move data directly from HBase to MySQL, in middle we need to have HIVE for it
+-HBase----->Hive------->HDFS------>RDBMS(MySQL)  using sqoop export
+
+step 1: Hive and HBase integraion 
+
+hive>create table hbasehivetab7(cid int, cname string,bal int)
+           stored by 'org.apache.hadoop.hive.hbase.HBaseStorageHandler'
+           with serdeproperties("hbase.columns.mapping"=":key,x:cname,x:bal");
+
+step 2: inserting data in hbase table
+
+hbase(main):009:0> put 'hbasehivetab7',101,'x:cname','miller'
+0 row(s) in 0.0170 seconds
+
+hbase(main):008:0> put 'hbasehivetab7',101,'x:bal',12000
+0 row(s) in 0.1650 seconds
+
+hbase(main):010:0> put 'hbasehivetab7',102,'x:cname','John'
+0 row(s) in 0.0280 seconds
+
+hbase(main):011:0> put 'hbasehivetab7',102,'x:bal',21000
+0 row(s) in 0.0110 seconds
+
+
+step 3: copying Hive table data into HDFS directory
+
+hive> select * from hbasehivetab69;
+OK
+101	miller	12000
+102	John	21000
+
+hive> insert overwrite directory '/myhdfs2'
+    > select * from hbasehivetab7;
+
+
+lenovo@lenovo-Lenovo-G450:~$ hadoop fs -ls /myhdfs2
+Found 1 items
+-rwxr-xr-x   1 lenovo supergroup         32 2017-08-21 13:55 /myhdfs2/000000_0
+lenovo@lenovo-Lenovo-G450:~$ hadoop fs -cat /myhdfs2/000000_0
+101miller12000
+102John21000
+
+step 4: create table in Mysql
+mysql> create table hbasecust1(id int,cname varchar(10),bal int);
+
+mysql> select * from hbasecust1;
+Empty set (0.00 sec)
+
+
+step 4: using sqoop export,exporting data from HDFS----->mysql
+
+sqoop export \
+--connect jdbc:mysql://localhost/sqoopdb1 \
+--username root \
+--P \
+--table hbasecust1 \
+--export-dir /myhdfs2/000000_0 \
+--input-fields-terminated-by '\001'
+
+
+step 5: viewing in mysql
+
+mysql> select * from hbasecust1;
++------+--------+-------+
+| id   | cname  | bal   |
++------+--------+-------+
+|  102 | John   | 21000 |
+|  101 | miller | 12000 |
++------+--------+-------+
+2 rows in set (0.00 sec)
+-------------------------------------------------------------------------------------------------
+ex:2
+
+exporting from hbase to mysql  via hive using sqoop
+step 1: hive and hbase integration
+
+hive> create table hbasehivestd(rollno int,name string,marks int)
+    > stored by 'org.apache.hadoop.hive.hbase.HBaseStorageHandler'
+    > with serdeproperties("hbase.columns.mapping"=":key,s:name,s:marks");
+OK
+Time taken: 3.125 seconds
+hive> select * from hbasehivestd;
+OK
+Time taken: 0.416 seconds
+
+
+
+step 2: inserting data into hbase table
+
+hbase(main):019:0> put 'hbasehivestd',501,'s:name','miller'
+0 row(s) in 0.0260 seconds
+
+hbase(main):020:0> put 'hbasehivestd',501,'s:marks',87
+0 row(s) in 0.0130 seconds
+
+hbase(main):021:0> put 'hbasehivestd',502,'s:name','John'
+0 row(s) in 0.0070 seconds
+
+hbase(main):022:0> put 'hbasehivestd',502,'s:marks',68
+0 row(s) in 0.0130 seconds
+
+
+step 3: copying hive table data to hdfs
+
+hive> select * from hbasehivestd;
+OK
+501	miller	87
+502	John	68
+
+
+hive> insert overwrite directory '/mystd1'
+    > select * from hbasehivestd;
+
+step 4: view the data in HDFS
+
+lenovo@lenovo-Lenovo-G450:~$ hadoop fs -ls /mystd1
+Found 1 items
+-rwxr-xr-x   1 lenovo supergroup         26 2017-08-21 15:50 /mystd1/000000_0
+lenovo@lenovo-Lenovo-G450:~$ hadoop fs -cat /mystd1/000000_0
+501miller87
+502John68
+
+step 5: create a table in mysql
+
+mysql> create table std1(rollno int,name varchar(10),marks int);
+Query OK, 0 rows affected (0.33 sec)
+
+
+step 6: using sqoop export, export the data from HDFS to RDBMS
+
+sqoop export \
+> --connect jdbc:mysql://localhost/sqoopdb1 \
+> --username root \
+> --P \
+> --table std1 -m 1 \
+> --export-dir /mystd1/000000_0 \
+> --input-fields-terminated-by '\001'
+
+
+step 7: observe the resultant data in mysql
+
+mysql> select * from std1;
++--------+--------+-------+
+| rollno | name   | marks |
++--------+--------+-------+
+|    501 | miller |    87 |
+|    502 | John   |    68 |
++--------+--------+-------+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
